@@ -80,7 +80,7 @@ function openArticleChapter(chapter){
 }
 function articlePagerHTML(list,index){
   const prev=list[index-1],next=list[index+1];
-  return '<div class="article-pager" aria-label="Переход между статьями"><button class="pager-btn" onclick="navigateArticle(-1)" '+(!prev?'disabled':'')+'><b>← Предыдущая</b><span>'+(prev?esc(articleHeading(prev))+'<br>'+esc(prev.title):'Вы на первой статье этой главы')+'</span></button><button class="pager-btn next" onclick="navigateArticle(1)" '+(!next?'disabled':'')+'><b>Следующая →</b><span>'+(next?esc(articleHeading(next))+'<br>'+esc(next.title):'Вы на последней статье этой главы')+'</span></button></div>';
+  return '<div class="article-pager" aria-label="Переход между статьями"><button class="pager-btn" onclick="navigateArticle(-1)" '+(!prev?'disabled':'')+'><span class="pager-label">← Предыдущая</span><span class="pager-title">'+(prev?esc(articleHeading(prev))+' — '+esc(prev.title):'Вы на первой статье этой главы')+'</span></button><button class="pager-btn next" onclick="navigateArticle(1)" '+(!next?'disabled':'')+'><span class="pager-label">Следующая →</span><span class="pager-title">'+(next?esc(articleHeading(next))+' — '+esc(next.title):'Вы на последней статье этой главы')+'</span></button></div>';
 }
 function legalStructure(a){
   const text=String(a.official_text||'').trim();
