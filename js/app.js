@@ -635,7 +635,7 @@ async function saveBlitzLeaderboardScore(b){
       const{error}=await client.from('blitz_scores').update({best_score:Math.max(row.best_score||0,b.score),rounds:(row.rounds||0)+1,updated_at:new Date().toISOString()}).eq('user_id',userId);
       if(error)throw error;
     }
-    blitzTop=null;
+    blitzTop=null;loadBlitzTop(true);
   }catch(e){/* рейтинг необязателен: раунд уже сохранён */}
 }
 async function loadBlitzTop(force){
