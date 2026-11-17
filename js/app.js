@@ -1047,6 +1047,7 @@ const ACTIONS={
   requestReset:el=>requestReset(el.dataset.mode,el.dataset.arg),
   selectDetectiveOption:el=>selectDetectiveOption(el.dataset.arg),
   toggleGameOption:el=>toggleGameOption(+el.dataset.arg),
+  answerBlitz:el=>answerBlitz(+el.dataset.arg),
   scrollToLegalPart:(el,e)=>scrollToLegalPart(e,el.dataset.arg),
   startDetectiveScenario:el=>startDetectiveScenario(+el.dataset.arg),
   repeatMistake:el=>startMistakeRound([+el.dataset.arg]),
