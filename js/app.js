@@ -7,7 +7,7 @@ let tab='home',level='novice',notif=true,dark=true,client=null,session=null,prof
 let articles=[],articlesLoaded=false,articlesError='',favorites=[],favBusyId='',codeView='root',currentChapter='',currentArticleId='',activeCategory='Все',activePart='Общая часть',searchQuery='',noteId='',currentNote='',noteBusy=false,noteLoading=false,noteStatus='',noteError='',noteRequestId=0,codeRequestId=0,articleDirection=0,articleNavigating=false;
 let gameQuestions=[],gameQuestionsLoaded=false,gameQuestionsLoading=false,gameQuestionsError='',gameView='sessions',gameRound=null,gameAnswerBusy=false,gameQuestionRequestId=0;
 const BLITZ_QUESTIONS=10,BLITZ_TIME=15;
-let blitzRound=null,blitzAnswerBusy=false,blitzTimerId=null;
+let blitzRound=null,blitzAnswerBusy=false,blitzTimerId=null,blitzTop=null,blitzTopLoading=false,blitzTopError='';
 let gameSessions=[],gameSessionsLoaded=false,gameSessionsLoading=false,gameSessionsError='',detectiveScenarios=[],detectiveScenariosLoaded=false,detectiveScenariosLoading=false,detectiveScenariosError='',detectiveRound=null,menuView='modes',sessionBusy=false,sessionError='',resetTarget=null,detectiveAnswerBusy=false,gameDataRequestId=0,detectiveScenarioRequestId=0;
 let sessionSaveQueue=Promise.resolve(),gameSessionsPromise=null;
 const configured=SUPABASE_URL.startsWith('https://')&&SUPABASE_ANON_KEY.length>20;
@@ -608,6 +608,7 @@ async function finishBlitzRound(){
     const previousBest=gameSessions.filter(s=>s.mode==='blitz'&&s.status==='completed').reduce((m,s)=>Math.max(m,s.best_score||s.score||0),0);
     b.bestScore=Math.max(previousBest,b.score);b.status='completed';
     const saved=await saveSessionRecord(blitzSessionRecord());b.sessionId=saved.id;
+    saveBlitzLeaderboardScore(b);
     gameView='blitz-summary';
   }catch(error){sessionError=gameErrorText(error)}
   blitzAnswerBusy=false;render();scrollTo(0,0);
@@ -622,9 +623,46 @@ function blitzQuestionScreen(){
   const side='<aside class="game-side"><div class="card"><div class="eyebrow">Блиц</div><dl><dt>Вопрос</dt><dd>'+n+' / '+total+'</dd><dt>Верных</dt><dd>'+b.correct+'</dd><dt>Очки</dt><dd>'+b.score+'</dd><dt>Заработано</dt><dd>'+b.xp+' XP</dd></dl>'+(q.article_ref?'<div class="article-ref"><b style="color:var(--gold2)">Нормы в задании</b><br>'+esc(q.article_ref)+'</div>':'')+'</div></aside>';
   return activeToolbar('blitz',b.sessionId)+'<div class="game-round-head"><div><div class="eyebrow">Блиц · скоростной раунд</div><h1>Вопрос '+n+' <span class="goldtext">из '+total+'</span></h1></div><span class="chip">'+esc(q.category)+'</span></div><div class="game-progress" role="progressbar" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+n+'"><span style="width:'+(n/total*100)+'%"></span></div>'+(entry.answered?'':blitzTimerHTML())+'<div class="game-layout"><div class="game-content"><section class="card game-question-card"><div class="eyebrow">Учебная ситуация</div><div class="game-question-text">'+esc(q.text)+'</div><p class="game-type-hint">'+(entry.answered?'Ответ зафиксирован':'Одно нажатие фиксирует ответ — у вас '+BLITZ_TIME+' секунд')+'</p><div class="game-options">'+options+'</div></section>'+result+'</div>'+side+'</div>';
 }
+async function saveBlitzLeaderboardScore(b){
+  const userId=session?.user?.id;if(!userId||!b)return;
+  try{
+    const{data:row,error:readError}=await client.from('blitz_scores').select('best_score,rounds').eq('user_id',userId).maybeSingle();
+    if(readError)throw readError;
+    if(!row){
+      const{error}=await client.from('blitz_scores').insert({user_id:userId,best_score:b.score,rounds:1});
+      if(error)throw error;
+    }else{
+      const{error}=await client.from('blitz_scores').update({best_score:Math.max(row.best_score||0,b.score),rounds:(row.rounds||0)+1,updated_at:new Date().toISOString()}).eq('user_id',userId);
+      if(error)throw error;
+    }
+    blitzTop=null;
+  }catch(e){/* рейтинг необязателен: раунд уже сохранён */}
+}
+async function loadBlitzTop(force){
+  if(blitzTopLoading||(!force&&blitzTop))return;
+  blitzTopLoading=true;blitzTopError='';
+  if(gameView==='blitz-summary')render();
+  try{
+    const{data,error}=await client.from('blitz_leaderboard').select('user_id,display_name,best_score,rounds').order('best_score',{ascending:false}).order('updated_at',{ascending:true}).limit(10);
+    if(error)throw error;
+    blitzTop=data||[];
+  }catch(e){blitzTop=[];blitzTopError=gameErrorText(e)}
+  blitzTopLoading=false;
+  if(gameView==='blitz-summary')render();
+}
+function blitzTopHTML(){
+  if(blitzTopLoading&&!blitzTop)return'<div class="card" style="text-align:center"><div class="spinner" style="margin:8px auto"></div><p class="sub">Загружаем рейтинг…</p></div>';
+  if(blitzTopError)return'<div class="card"><h2>Рейтинг недоступен</h2><p class="error">'+esc(blitzTopError)+'</p><button class="btn-outline" onclick="loadBlitzTop(true)">Повторить</button></div>';
+  if(!blitzTop)return'';
+  if(!blitzTop.length)return'<div class="card"><h2>Рейтинг блица</h2><p class="sub" style="padding:0">Вы первый — таблица появится после сохранения результата.</p></div>';
+  const me=session?.user?.id;
+  const rows=blitzTop.map((r,i)=>'<div class="saved-row" style="align-items:center"><span class="game-count" style="font-size:15px;width:28px;text-align:center">'+(i+1)+'</span><span style="flex:1;font-size:14px'+(r.user_id===me?';color:var(--gold2);font-weight:600':'')+'">'+esc(r.display_name||'Игрок')+(r.user_id===me?' · вы':'')+'</span><span style="font-size:14px;font-weight:600">'+r.best_score+'</span></div>').join('');
+  return'<div class="card"><div class="row" style="justify-content:space-between"><h2>Рейтинг блица</h2><span class="chip">Топ-10</span></div>'+rows+'</div>';
+}
 function blitzSummaryScreen(){
   const b=blitzRound,total=b.entries.length||b.total||0;
-  return activeToolbar('blitz',b.sessionId)+header('Блиц завершён','Ваш <span class="goldtext">результат</span>','Все ответы и очки сохранены в Supabase.')+'<div class="card" style="text-align:center;padding:30px 20px"><div class="iconbox" style="width:66px;height:66px;margin:0 auto 18px">'+ic('lightning',30)+'</div><h2 style="font-size:27px">'+b.correct+' из '+total+' верных · '+b.score+' очков</h2><div class="game-summary-stats"><div class="game-summary-stat"><b>'+b.score+'</b><span>Очки</span></div><div class="game-summary-stat"><b>'+b.bestScore+'</b><span>Лучший результат</span></div><div class="game-summary-stat"><b>'+b.correct+'</b><span>Верных</span></div><div class="game-summary-stat"><b>+'+b.xp+'</b><span>Заработано XP</span></div></div><div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn-gold" onclick="requestReset(\'blitz\',\''+b.sessionId+'\')">'+ic('rotate',16)+'Играть снова</button><button class="btn-outline" onclick="go(\'mistakes\')">'+ic('document',16)+'Разбор ошибок</button><button class="btn-outline" onclick="exitActiveGame()">'+ic('home',16)+'Все режимы</button></div></div>';
+  if(!blitzTop&&!blitzTopLoading)loadBlitzTop();
+  return activeToolbar('blitz',b.sessionId)+header('Блиц завершён','Ваш <span class="goldtext">результат</span>','Все ответы и очки сохранены в Supabase.')+'<div class="card" style="text-align:center;padding:30px 20px"><div class="iconbox" style="width:66px;height:66px;margin:0 auto 18px">'+ic('lightning',30)+'</div><h2 style="font-size:27px">'+b.correct+' из '+total+' верных · '+b.score+' очков</h2><div class="game-summary-stats"><div class="game-summary-stat"><b>'+b.score+'</b><span>Очки</span></div><div class="game-summary-stat"><b>'+b.bestScore+'</b><span>Лучший результат</span></div><div class="game-summary-stat"><b>'+b.correct+'</b><span>Верных</span></div><div class="game-summary-stat"><b>+'+b.xp+'</b><span>Заработано XP</span></div></div><div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn-gold" onclick="requestReset(\'blitz\',\''+b.sessionId+'\')">'+ic('rotate',16)+'Играть снова</button><button class="btn-outline" onclick="go(\'mistakes\')">'+ic('document',16)+'Разбор ошибок</button><button class="btn-outline" onclick="exitActiveGame()">'+ic('home',16)+'Все режимы</button></div></div>'+blitzTopHTML();
 }
 async function resetBlitzSession(record){
   const previous=blitzRound;try{
@@ -866,7 +904,7 @@ function statsScreen(){
   const s=statsData,m=[['Решено заданий',s.total,'target'],['Верных ответов',s.accuracy+'%','check'],['Серия верных',s.streak,'lightning'],['Достижений',s.earned+' / '+s.achievements.length,'trophy']];
   const max=Math.max(1,...s.activity.map(d=>d.count));
   const bars=s.activity.map(d=>'<div class="bar"><i style="height:'+Math.max(4,Math.round(d.count/max*100))+'%"></i><b>'+d.label+'</b></div>').join('');
-  return h+'<div class="grid4">'+m.map(x=>'<div class="card">'+iconbox(x[2],false,17)+'<p class="serif" style="font-size:26px;font-weight:700;margin-top:10px">'+x[1]+'</p><p style="font-size:12px;color:var(--silver)">'+x[0]+'</p></div>').join('')+'</div><div class="card"><div class="row" style="justify-content:space-between"><div><h2>Активность по дням</h2><p style="font-size:12px;color:var(--dim);margin-top:2px">Ответов за последние 7 дней</p></div>'+(s.total?'<span class="chip">'+s.total+'</span>':'<span class="chip">Нет данных</span>')+'</div><div class="row" style="align-items:flex-end;height:150px;margin-top:22px;gap:12px">'+bars+'</div></div><h2 style="margin-top:4px">Достижения</h2><div class="grid2">'+s.achievements.map(a=>'<div class="card achv'+(a.earned?'':' locked')+'">'+iconbox(a.earned?a.icon:'lock',!a.earned,18)+'<div style="flex:1"><h2 style="font-size:15px">'+a.name+'</h2><p style="font-size:12px;color:var(--dim);margin-top:3px">'+a.desc+'</p></div>'+(a.earned?'<span class="chip">Получено</span>':'')+'</div>').join('')+'</div>';
+  return h+'<div class="grid4">'+m.map(x=>'<div class="card">'+iconbox(x[2],false,17)+'<p class="serif" style="font-size:26px;font-weight:700;margin-top:10px">'+x[1]+'</p><p style="font-size:12px;color:var(--silver)">'+x[0]+'</p></div>').join('')+'</div><div class="card"><div class="row" style="justify-content:space-between"><div><h2>Активность по дням</h2><p style="font-size:12px;color:var(--dim);margin-top:2px">Ответов за последние 7 дней</p></div>'+(s.total?'<span class="chip">'+s.total+'</span>':'<span class="chip">Нет данных</span>')+'</div><div class="row" style="align-items:flex-end;height:150px;margin-top:22px;gap:12px">'+bars+'</div></div><h2 style="margin-top:4px">Блиц</h2>'+(s.blitz.rounds?'<div class="grid4">'+[['Раундов сыграно',s.blitz.rounds,'lightning'],['Рекорд',s.blitz.best,'trophy'],['Средний результат',s.blitz.avg,'chart'],['Точность',s.blitz.accuracy+'%','target']].map(x=>'<div class="card">'+iconbox(x[2],false,17)+'<p class="serif" style="font-size:26px;font-weight:700;margin-top:10px">'+x[1]+'</p><p style="font-size:12px;color:var(--silver)">'+x[0]+'</p></div>').join('')+'</div>':'<div class="card"><p style="font-size:13px;color:var(--silver);margin:0 0 14px">Сыграйте первый блиц — здесь появятся раунды, рекорд и точность.</p><button class="btn-gold" onclick="tab=\'game\';menuView=\'blitz\';render()">'+ic('lightning',15)+' Играть в блиц</button></div>')+'<h2 style="margin-top:4px">Достижения</h2><div class="grid2">'+s.achievements.map(a=>'<div class="card achv'+(a.earned?'':' locked')+'">'+iconbox(a.earned?a.icon:'lock',!a.earned,18)+'<div style="flex:1"><h2 style="font-size:15px">'+a.name+'</h2><p style="font-size:12px;color:var(--dim);margin-top:3px">'+a.desc+'</p></div>'+(a.earned?'<span class="chip">Получено</span>':'')+'</div>').join('')+'</div>';
 }
 function statsLinkHTML(){return '<div class="card" style="padding:6px 18px"><button class="listbtn" style="border:0;min-height:56px" onclick="openStats()">'+iconbox('chart',false,18)+'<span style="flex:1;text-align:left">Статистика<small style="display:block;margin-top:3px;color:var(--dim);font-weight:400">Точность, серия верных и активность</small></span><span style="color:var(--dim)">'+ic('chevron',15)+'</span></button></div>'}
 function guestNoticeHTML(){return session?.user?.is_anonymous?'<p class="notice">Вы в гостевом режиме: прогресс хранится только на этом устройстве и может быть потерян при очистке данных браузера. <button class="btn-text" onclick="openAuth(\'upgrade\')">Привязать email</button></p>':''}
@@ -982,7 +1020,7 @@ async function loadStatsData(force){
   const[ans,mist,sess]=await Promise.all([
     client.from('user_answers').select('question_id,is_correct,xp_earned,answered_at').eq('user_id',userId).order('answered_at',{ascending:true}),
     client.from('user_mistakes').select('question_id,repeat_count,mastered').eq('user_id',userId),
-    client.from('game_sessions').select('mode,status,score,best_score,xp_earned').eq('user_id',userId)
+    client.from('game_sessions').select('mode,status,score,best_score,xp_earned,state').eq('user_id',userId)
   ]);
   if(session?.user.id!==userId)return;
   statsLoading=false;
@@ -999,14 +1037,18 @@ function computeStats(answers,mistakesArr,sessions){
   const activity=days.map(d=>({label:wd[d.getDay()],count:answers.filter(a=>new Date(a.answered_at).toDateString()===d.toDateString()).length}));
   const mastered=mistakesArr.filter(m=>m.mastered).length;
   const detectiveDone=sessions.filter(s=>s.mode==='detective'&&s.status==='completed').length;
+  const blitzDone=sessions.filter(x=>x.mode==='blitz'&&x.status==='completed');
+  const bq=blitzDone.reduce((a,x)=>({c:a.c+(x.state?.correct||0),t:a.t+(x.state?.total||0)}),{c:0,t:0});
   const s={total,correct,accuracy:total?Math.round(correct/total*100):0,streak,activity,mastered,detectiveDone};
+  s.blitz={rounds:blitzDone.length,best:blitzDone.reduce((m,x)=>Math.max(m,x.best_score||x.score||0),0),avg:blitzDone.length?Math.round(blitzDone.reduce((a,x)=>a+(x.score||0),0)/blitzDone.length):0,accuracy:bq.t?Math.round(bq.c/bq.t*100):0};
   s.achievements=[
     {id:'first',name:'Первый шаг',desc:'Первый ответ на вопрос тренировки',icon:'check',earned:s.total>=1},
     {id:'ten',name:'Десятка',desc:'10 верных ответов',icon:'target',earned:s.correct>=10},
     {id:'fifty',name:'Знаток закона',desc:'50 верных ответов',icon:'scales',earned:s.correct>=50},
     {id:'streak',name:'Серия · 5',desc:'5 верных ответов подряд',icon:'lightning',earned:s.streak>=5},
     {id:'detective',name:'Сыщик',desc:'Первое завершённое расследование',icon:'search',earned:s.detectiveDone>=1},
-    {id:'master',name:'Работа над ошибками',desc:'3 освоенные ошибки',icon:'rotate',earned:s.mastered>=3}
+    {id:'master',name:'Работа над ошибками',desc:'3 освоенные ошибки',icon:'rotate',earned:s.mastered>=3},
+    {id:'blitz',name:'Спринтер',desc:'Первый завершённый раунд блица',icon:'trophy',earned:s.blitz.rounds>=1}
   ];
   s.earned=s.achievements.filter(a=>a.earned).length;
   return s;
