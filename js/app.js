@@ -3,7 +3,7 @@ function ic(n,s){return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="
 function mountIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=ic(e.dataset.icon,+e.dataset.size||20))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const TABS=[['home','Главная','home'],['code','Кодекс','document'],['library','Библиотека','book'],['game','Игра','target'],['mistakes','Ошибки','rotate'],['profile','Профиль','user']],SHORT={'Библиотека':'Книги'};let profileView='main',editProfileBusy=false,editProfileError='';
-let books=[],booksLoaded=false,booksLoading=false,booksError='',booksRequestId=0,libraryView='list',bookFilter='all',bookSearch='',bookDraft=null,bookFormErrors={},bookBusy=false,activeBookId=null,deleteBookTarget=null,bookActionError='';
+let books=[],booksLoaded=false,booksLoading=false,booksError='',booksRequestId=0,libraryView='list',bookFilter='all',bookSearch='',bookDraft=null,bookFormErrors={},bookBusy=false,activeBookId=null,deleteBookTarget=null,bookActionError='',bookFile=null,bookFileRemove=false,bookUploading=false;
 let tab='home',level='novice',notif=true,dark=true,client=null,session=null,profile=null,profileSyncError='',authMode=null,authLoading=false,guestBusy=false,logoutBusy=false,requestId=0;
 let articles=[],articlesLoaded=false,articlesError='',favorites=[],favBusyId='',codeView='root',currentChapter='',currentArticleId='',activeCategory='Все',activePart='Общая часть',searchQuery='',noteId='',currentNote='',noteBusy=false,noteLoading=false,noteStatus='',noteError='',noteRequestId=0,codeRequestId=0,articleDirection=0,articleNavigating=false;
 let gameQuestions=[],gameQuestionsLoaded=false,gameQuestionsLoading=false,gameQuestionsError='',gameView='sessions',gameRound=null,gameAnswerBusy=false,gameQuestionRequestId=0;
@@ -715,7 +715,7 @@ function bookListHTML(){
     const stars=b.rating?'<span style="color:var(--gold2);font-size:13px;letter-spacing:2px;white-space:nowrap">'+'★'.repeat(b.rating)+'<span style="color:var(--dim)">'+'★'.repeat(5-b.rating)+'</span></span>':'';
     const meta=[b.author,b.year,b.category].filter(v=>v!==null&&v!==''&&v!==undefined).map(esc).join(' · ');
     const notes=b.notes?'<p class="note" style="padding:0;margin-top:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esc(b.notes)+'</p>':'';
-    const statusBtns=BOOK_STATUSES.map(s=>'<button class="chip" style="min-height:44px;padding:0 12px;cursor:pointer;'+(b.status===s[0]?'color:var(--gold2);border-color:var(--gold)':'')+'" data-action="setBookStatus" data-arg="'+b.id+'" data-status="'+s[0]+'" '+(bookBusy?'disabled':'')+'>'+s[1]+'</button>').join('');
+    const statusBtns=BOOK_STATUSES.map(s=>'<button class="chip" style="min-height:44px;padding:0 12px;cursor:pointer;'+(b.status===s[0]?'color:var(--gold2);border-color:var(--gold)':'')+'" data-action="setBookStatus" data-arg="'+b.id+'" data-status="'+s[0]+'" '+(bookBusy?'disabled':'')+'>'+s[1]+'</button>').join('')+(b.file_path?'<button class="chip" style="min-height:44px;padding:0 12px;cursor:pointer;color:var(--gold2)" data-action="downloadBook" data-arg="'+b.id+'">PDF ↓</button>':'');
     return'<div class="card"><div style="cursor:pointer" data-action="openBook" data-arg="'+b.id+'"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><h2 style="font-size:17px;flex:1;margin:0">'+esc(b.title)+'</h2>'+stars+'</div>'+(meta?'<p style="font-size:13px;color:var(--silver);margin-top:4px">'+meta+'</p>':'')+notes+'</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">'+statusBtns+'</div></div>';
   }).join('');
 }
@@ -725,10 +725,36 @@ function bookDetailScreen(){
   if(!b){libraryView='list';return libraryScreen()}
   const stars=b.rating?'★'.repeat(b.rating)+'<span style="color:var(--dim)">'+'★'.repeat(5-b.rating)+'</span>':'<span style="color:var(--dim);letter-spacing:0">Без оценки</span>';
   const rows=[['Автор',b.author?esc(b.author):''],['Год',b.year?esc(b.year):''],['Категория',b.category?esc(b.category):'']].filter(r=>r[1]!=='').map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
-  return header('Библиотека',esc(b.title),'')+'<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:10px"><span class="chip">'+bookStatusName(b.status)+'</span><span style="color:var(--gold2);letter-spacing:2px">'+stars+'</span></div>'+(rows?'<dl style="margin-top:16px">'+rows+'</dl>':'')+(b.link?'<p style="margin-top:12px"><a class="gold" href="'+esc(b.link)+'" target="_blank" rel="noopener noreferrer">'+esc(b.link)+' ↗</a></p>':'')+(b.notes?'<div class="result-section"><h3>Заметки</h3><p style="white-space:pre-wrap">'+esc(b.notes)+'</p></div>':'')+'<div class="game-answer-actions"><button class="btn-gold" onclick="openBookForm(\''+b.id+'\')">Редактировать</button><button class="btn-outline" style="border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="requestDeleteBook(\''+b.id+'\')">Удалить</button></div></div>';
+  return header('Библиотека',esc(b.title),'')+'<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:10px"><span class="chip">'+bookStatusName(b.status)+'</span><span style="color:var(--gold2);letter-spacing:2px">'+stars+'</span></div>'+(rows?'<dl style="margin-top:16px">'+rows+'</dl>':'')+(b.link?'<p style="margin-top:12px"><a class="gold" href="'+esc(b.link)+'" target="_blank" rel="noopener noreferrer">'+esc(b.link)+' ↗</a></p>':'')+(b.notes?'<div class="result-section"><h3>Заметки</h3><p style="white-space:pre-wrap">'+esc(b.notes)+'</p></div>':'')+(b.file_path?'<div class="result-section"><h3>Файл</h3><p style="font-size:14px">'+ic('document',15)+' '+esc(b.file_name||'PDF-файл')+'</p></div>':'')+'<div class="game-answer-actions"><button class="btn-gold" onclick="openBookForm(\''+b.id+'\')">Редактировать</button>'+(b.file_path?'<button class="btn-outline" data-action="downloadBook" data-arg="'+b.id+'">'+ic('document',15)+' Скачать PDF</button>':'')+'<button class="btn-outline" style="border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="requestDeleteBook(\''+b.id+'\')">Удалить</button></div></div>';
+}
+function bookFileFieldHTML(){
+  const b=activeBookId?books.find(x=>x.id===activeBookId):null;
+  let inner;
+  if(bookFile){
+    inner='<div class="row" style="justify-content:space-between;align-items:center;margin-top:7px"><span style="font-size:13px">'+ic('document',15)+' '+esc(bookFile.name)+' <span style="color:var(--dim)">('+(Math.round(bookFile.size/1024/102.4)/10)+' МБ)</span></span><button type="button" class="btn-text" onclick="bookFile=null;render()">'+ic('x',15)+'</button></div>';
+  }else if(b?.file_path&&!bookFileRemove){
+    inner='<div class="row" style="justify-content:space-between;align-items:center;margin-top:7px;flex-wrap:wrap;gap:8px"><span style="font-size:13px">'+ic('document',15)+' '+esc(b.file_name||'PDF-файл')+'</span><span class="row" style="gap:8px"><button type="button" class="btn-text" data-action="downloadBook" data-arg="'+b.id+'">Скачать</button><button type="button" class="btn-text" onclick="this.closest(\'.form-label\').querySelector(\'input[type=file]\').style.display=\'block\';this.style.display=\'none\'">Заменить</button><button type="button" class="btn-text" style="color:#e5b8a9" onclick="bookFileRemove=true;render()">Удалить</button></span></div><input id="book-f-file" class="field" type="file" accept="application/pdf" style="display:none;margin-top:8px" onchange="bookFileChosen(this)">';
+  }else{
+    inner='<input id="book-f-file" class="field" type="file" accept="application/pdf" style="margin-top:7px" onchange="bookFileChosen(this)">'+(bookFileRemove?'<p class="note" style="padding:0;margin-top:6px">Текущий файл будет удалён при сохранении.</p>':'');
+  }
+  return '<div class="form-label">PDF-файл книги'+inner+'</div>'+(bookFormErrors.file?'<p class="error">'+esc(bookFormErrors.file)+'</p>':'');
+}
+function bookFileChosen(el){
+  const f=el.files&&el.files[0];if(!f)return;
+  if(f.type!=='application/pdf'){bookFormErrors={...bookFormErrors,file:'Можно прикрепить только PDF'};render();return}
+  if(f.size>50*1024*1024){bookFormErrors={...bookFormErrors,file:'Файл больше 50 МБ — сожмите PDF'};render();return}
+  bookFile=f;bookFormErrors={...bookFormErrors,file:''};render();
+}
+async function downloadBook(id){
+  const b=books.find(x=>x.id===id);if(!b?.file_path)return;
+  try{
+    const{data,error}=await client.storage.from('book-files').createSignedUrl(b.file_path,60);
+    if(error)throw error;
+    window.open(data.signedUrl,'_blank');
+  }catch(e){bookActionError='Не удалось открыть файл: '+gameErrorText(e);if(tab==='library')render()}
 }
 function openBookForm(id){
-  activeBookId=id||null;
+  activeBookId=id||null;bookFile=null;bookFileRemove=false;
   const b=id?books.find(x=>x.id===id):null;
   bookDraft=b?{title:b.title||'',author:b.author||'',year:b.year??'',category:b.category||'',status:b.status||'want',rating:b.rating??'',notes:b.notes||'',link:b.link||''}:{title:'',author:'',year:'',category:'',status:'want',rating:'',notes:'',link:''};
   bookFormErrors={};libraryView='form';render();scrollTo(0,0);
@@ -745,8 +771,9 @@ function bookFormScreen(){
     +'<label class="form-label">Оценка<select id="book-f-rating" class="field"><option value="">Без оценки</option>'+[1,2,3,4,5].map(r=>'<option value="'+r+'"'+(String(d.rating)===String(r)?' selected':'')+'>'+'★'.repeat(r)+'</option>').join('')+'</select></label>'
     +'<label class="form-label">Заметки<textarea id="book-f-notes" class="field" rows="4" maxlength="2000" placeholder="Мысли, закладки, цитаты">'+esc(d.notes)+'</textarea></label>'+err('notes')
     +'<label class="form-label">Ссылка<input id="book-f-link" class="field" type="url" value="'+esc(d.link)+'" placeholder="https://…"></label>'+err('link')
+    +bookFileFieldHTML()
     +(e._server?'<p class="error">'+esc(e._server)+'</p>':'')
-    +'<div class="game-answer-actions"><button class="btn-gold" onclick="saveBook()" '+(bookBusy?'disabled':'')+'>'+(bookBusy?'<span class="spinner" style="width:16px;height:16px"></span> Сохраняем…':activeBookId?'Сохранить изменения':'Добавить книгу')+'</button><button class="btn-outline" onclick="libraryView=\'list\';render()">Отмена</button></div></div>';
+    +'<div class="game-answer-actions"><button class="btn-gold" onclick="saveBook()" '+(bookBusy?'disabled':'')+'>'+(bookBusy?'<span class="spinner" style="width:16px;height:16px"></span> '+(bookUploading?'Загружаем файл…':'Сохраняем…'):activeBookId?'Сохранить изменения':'Добавить книгу')+'</button><button class="btn-outline" onclick="libraryView=\'list\';render()">Отмена</button></div></div>';
 }
 async function saveBook(){
   const userId=session?.user.id;if(!userId||bookBusy)return;
@@ -762,17 +789,34 @@ async function saveBook(){
   bookBusy=true;render();
   const payload={title:draft.title,author:draft.author||null,year:draft.year?Number(draft.year):null,category:draft.category||null,status:draft.status,rating:draft.rating?Number(draft.rating):null,notes:draft.notes||null,link:draft.link||null};
   try{
+    let saved;
     if(activeBookId){
       const{data,error}=await client.from('user_books').update(payload).eq('id',activeBookId).eq('user_id',userId).select().single();
       if(error)throw error;
-      books=books.map(b=>b.id===activeBookId?data:b);
+      saved=data;books=books.map(b=>b.id===activeBookId?data:b);
     }else{
       const{data,error}=await client.from('user_books').insert({...payload,user_id:userId}).select().single();
       if(error)throw error;
-      books=[data,...books];
+      saved=data;books=[data,...books];
     }
-    bookBusy=false;bookDraft=null;activeBookId=null;bookActionError='';libraryView='list';render();scrollTo(0,0);
-  }catch(error){bookBusy=false;bookFormErrors={_server:gameErrorText(error)};render()}
+    bookActionError='';
+    if(bookFileRemove&&saved.file_path){
+      await client.storage.from('book-files').remove([saved.file_path]);
+      const{data:upd}=await client.from('user_books').update({file_path:null,file_name:null}).eq('id',saved.id).select().single();
+      if(upd){saved=upd;books=books.map(b=>b.id===saved.id?upd:b)}
+    }
+    if(bookFile){
+      bookUploading=true;render();
+      const path=userId+'/'+saved.id+'.pdf';
+      const{error:upErr}=await client.storage.from('book-files').upload(path,bookFile,{upsert:true,contentType:'application/pdf'});
+      bookUploading=false;
+      if(!upErr){
+        const{data:upd}=await client.from('user_books').update({file_path:path,file_name:bookFile.name}).eq('id',saved.id).select().single();
+        if(upd){saved=upd;books=books.map(b=>b.id===saved.id?upd:b)}
+      }else bookActionError='Книга сохранена, но файл не загрузился: '+gameErrorText(upErr);
+    }
+    bookBusy=false;bookDraft=null;bookFile=null;bookFileRemove=false;activeBookId=null;libraryView='list';render();scrollTo(0,0);
+  }catch(error){bookBusy=false;bookUploading=false;bookFormErrors={_server:gameErrorText(error)};render()}
 }
 async function setBookStatus(id,status){
   const userId=session?.user.id,b=books.find(x=>x.id===id);if(!userId||!b||b.status===status||bookBusy)return;
@@ -796,8 +840,10 @@ async function confirmDeleteBook(){
   const userId=session?.user.id,id=deleteBookTarget;if(!userId||!id||bookBusy)return;
   bookBusy=true;const modal=document.getElementById('delete-book');modal.querySelectorAll('button').forEach(b=>b.disabled=true);
   try{
+    const book=books.find(b=>b.id===id);
     const{error}=await client.from('user_books').delete().eq('id',id).eq('user_id',userId);
     if(error)throw error;
+    if(book?.file_path)await client.storage.from('book-files').remove([book.file_path]);
     books=books.filter(b=>b.id!==id);bookBusy=false;closeDeleteBook();
     if(libraryView==='detail')libraryView='list';
     render();
@@ -1240,6 +1286,7 @@ const ACTIONS={
   markMastered:el=>markMistakeMastered(+el.dataset.arg),
   trainCategory:el=>trainWeakCategory(el.dataset.arg),
   openBook:el=>openBook(el.dataset.arg),
-  setBookStatus:el=>setBookStatus(el.dataset.arg,el.dataset.status)
+  setBookStatus:el=>setBookStatus(el.dataset.arg,el.dataset.status),
+  downloadBook:el=>downloadBook(el.dataset.arg)
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(!el||el.disabled)return;const fn=ACTIONS[el.dataset.action];if(fn){e.preventDefault();fn(el,e)}});
