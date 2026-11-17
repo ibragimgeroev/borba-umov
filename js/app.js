@@ -692,12 +692,31 @@ async function loadBooks(force){
 }
 async function loadBookCovers(userId,request){
   const paths=[...new Set(books.map(b=>b.cover_path).filter(Boolean))];
-  if(!paths.length)return;
+  if(!paths.length){regenMissingCovers(userId,request);return}
   const{data,error}=await client.storage.from('book-files').createSignedUrls(paths,3600);
   if(error||(request&&request!==booksRequestId)||session?.user.id!==userId)return;
   const map={};(data||[]).forEach(r=>{if(r.signedUrl)map[r.path]=r.signedUrl});
   books=books.map(b=>b.cover_path&&map[b.cover_path]?{...b,coverUrl:map[b.cover_path]}:b);
   if(tab==='library')render();
+  regenMissingCovers(userId,request);
+}
+async function regenMissingCovers(userId,request){
+  const need=books.filter(b=>b.file_path&&!b.cover_path);
+  for(const b of need){
+    if((request&&request!==booksRequestId)||session?.user.id!==userId)return;
+    try{
+      const{data:signed,error:sErr}=await client.storage.from('book-files').createSignedUrl(b.file_path,3600);
+      if(sErr||!signed?.signedUrl)continue;
+      const resp=await fetch(signed.signedUrl);if(!resp.ok)continue;
+      const file=new File([await resp.blob()],b.file_name||'book.pdf',{type:'application/pdf'});
+      const cover=await makeBookCover(userId,b.id,file);
+      if(!cover)continue;
+      const patch={cover_path:cover.coverPath};if(!b.page_count)patch.page_count=cover.pageCount;
+      const{data:upd}=await client.from('user_books').update(patch).eq('id',b.id).select().single();
+      books=books.map(x=>x.id===b.id?(upd||{...x,...patch}):x);
+    }catch(e){}
+  }
+  if(need.some(b=>books.find(x=>x.id===b.id&&x.cover_path)))await loadBookCovers(userId,request);
 }
 function bookProgress(b){return b.page_count?Math.min(100,Math.round((b.current_page||0)/b.page_count*100)):0}
 function libraryScreen(){
