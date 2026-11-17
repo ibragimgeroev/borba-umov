@@ -406,6 +406,26 @@ to{opacity:1;transform:translateY(0)}}
 .reader-thumb{flex:none;width:52px;height:70px;border:1px solid var(--line);border-radius:6px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);padding:0;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .reader-thumb canvas{width:100%;height:100%;display:block;object-fit:cover}
 .reader-thumb.current{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold);color:var(--gold)}
+/* --- Читалка: полноэкранный режим --- */
+.reader-full{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.reader-top{display:flex;align-items:center;gap:8px;padding:8px 12px;flex:none;transition:opacity .2s,transform .2s}
+.reader-tbtn{min-width:44px;height:44px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;padding:0 10px}
+.reader-aa-btn{font-family:var(--serif);letter-spacing:.03em}
+.reader-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--silver);text-align:center}
+.reader-pagechip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 64px);right:12px;z-index:6;background:rgba(19,19,22,.92);border:1px solid var(--line);color:var(--paper);border-radius:99px;padding:7px 14px;font-size:13px;transition:opacity .2s;backdrop-filter:blur(6px)}
+.reader-body{flex:1;min-height:0;overflow:auto;touch-action:pan-x pan-y;overscroll-behavior:contain}
+.reader-paged{display:block;padding:8px}
+.reader-paged canvas{margin:0 auto}
+.reader-scroll{display:block;padding:8px}
+.reader-slot{display:flex;justify-content:center;width:100%;margin-bottom:10px;background:rgba(255,255,255,.03);border-radius:6px;min-height:140px}
+.reader-slot canvas{display:block;border-radius:6px}
+.reader-bottom{flex:none;padding:4px 12px 10px;transition:opacity .2s,transform .2s}
+.reader-full.hide-ui .reader-top{opacity:0;transform:translateY(-10px);pointer-events:none}
+.reader-full.hide-ui .reader-bottom{opacity:0;transform:translateY(10px);pointer-events:none}
+.reader-full.hide-ui .reader-pagechip{opacity:0;pointer-events:none}
+.reader-full.theme-sepia .reader-body canvas{filter:sepia(.32) saturate(.92)}
+.reader-full.theme-dark .reader-body canvas{filter:invert(.92) hue-rotate(180deg) brightness(.92) contrast(.92)}
+.aa-on{border-color:var(--gold)!important;color:var(--gold2)!important}
 
 </style>
 </head>
@@ -498,12 +518,14 @@ const SUPABASE_ANON_KEY = "sb_publishable_7IVo6ZAMWc3I1BecCI77LQ_Kzr8ntNU";
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-const P={scales:'<path d="M12 3v18M5 6h14M12 3l-1.5 2h3L12 3M5 6l-3 7a4 4 0 0 0 6 0L5 6zM19 6l-3 7a4 4 0 0 0 6 0l-3-7zM8 21h8M12 17l-3 4M12 17l3 4"/>',column:'<path d="M4 21h16M5 18h14M6 18V8M18 18V8M9 18V8M12 18V8M15 18V8M4 8h16M5 5h14l1 3H4l1-3z"/>',gavel:'<path d="M13 6l5 5M8 11l5 5M9 4l8 8-3 3-8-8 3-3zM4 12l8 8-3 3-8-8 3-3zM3 21h9M14 14l7 7" transform="scale(.85) translate(2 1)"/>',document:'<path d="M6 3h9l4 4v14H6V3zM15 3v4h4M9 11h7M9 15h7M9 7h3"/>',shield:'<path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3zM9 12l2 2 4-4"/>',home:'<path d="M4 11l8-7 8 7M6 9v11h12V9M10 20v-6h4v6"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/>',rotate:'<path d="M4 12a8 8 0 1 1 2 6M4 12V6M4 12h6M9 9h6v6H9z"/>',chart:'<path d="M4 4v16h16M8 15v-4M12 15V8M16 15v-6M7 7l4-2 4 3 4-3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 5-6 8-6s7 1 8 6"/>',lightning:'<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',search:'<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',chevron:'<path d="M9 5l7 7-7 7"/>',bell:'<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/>',trophy:'<path d="M8 4h8v6a4 4 0 0 1-8 0V4zM8 5H4v3a3 3 0 0 0 4 3M16 5h4v3a3 3 0 0 1-4 3M12 14v4M8 21h8M10 18h4"/>',check:'<path d="M5 12l5 5L20 7"/>',moon:'<path d="M20 13A8 8 0 0 1 11 4 8 8 0 1 0 20 13z"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3z"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'};
+const P={scales:'<path d="M12 3v18M5 6h14M12 3l-1.5 2h3L12 3M5 6l-3 7a4 4 0 0 0 6 0L5 6zM19 6l-3 7a4 4 0 0 0 6 0l-3-7zM8 21h8M12 17l-3 4M12 17l3 4"/>',column:'<path d="M4 21h16M5 18h14M6 18V8M18 18V8M9 18V8M12 18V8M15 18V8M4 8h16M5 5h14l1 3H4l1-3z"/>',gavel:'<path d="M13 6l5 5M8 11l5 5M9 4l8 8-3 3-8-8 3-3zM4 12l8 8-3 3-8-8 3-3zM3 21h9M14 14l7 7" transform="scale(.85) translate(2 1)"/>',document:'<path d="M6 3h9l4 4v14H6V3zM15 3v4h4M9 11h7M9 15h7M9 7h3"/>',shield:'<path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3zM9 12l2 2 4-4"/>',home:'<path d="M4 11l8-7 8 7M6 9v11h12V9M10 20v-6h4v6"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/>',rotate:'<path d="M4 12a8 8 0 1 1 2 6M4 12V6M4 12h6M9 9h6v6H9z"/>',chart:'<path d="M4 4v16h16M8 15v-4M12 15V8M16 15v-6M7 7l4-2 4 3 4-3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 5-6 8-6s7 1 8 6"/>',lightning:'<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',search:'<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',chevron:'<path d="M9 5l7 7-7 7"/>',bell:'<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/>',trophy:'<path d="M8 4h8v6a4 4 0 0 1-8 0V4zM8 5H4v3a3 3 0 0 0 4 3M16 5h4v3a3 3 0 0 1-4 3M12 14v4M8 21h8M10 18h4"/>',check:'<path d="M5 12l5 5L20 7"/>',moon:'<path d="M20 13A8 8 0 0 1 11 4 8 8 0 1 0 20 13z"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3z"/>',arrowLeft:'<path d="M19 12H5M11 6l-6 6 6 6"/>',list:'<circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><path d="M9 6h12M9 12h12M9 18h12"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'};
 function ic(n,s){return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+(P[n]||'')+'</svg>'}
 function mountIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=ic(e.dataset.icon,+e.dataset.size||20))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const TABS=[['home','Главная','home'],['code','Кодекс','document'],['library','Библиотека','book'],['game','Игра','target'],['mistakes','Ошибки','rotate'],['profile','Профиль','user']],SHORT={'Библиотека':'Книги'};let profileView='main',editProfileBusy=false,editProfileError='';
-let books=[],booksLoaded=false,booksLoading=false,booksError='',booksRequestId=0,libraryView='list',bookFormErrors={},bookBusy=false,deleteBookTarget=null,bookActionError='',bookFile=null,bookUploading=false,bookMenuId=null,renameBookTarget=null,readerBook=null,readerPdf=null,readerPage=1,readerRendering=false,readerSaveTimer=null,readerError='',readerZoom=1,readerTouch=null;
+let books=[],booksLoaded=false,booksLoading=false,booksError='',booksRequestId=0,libraryView='list',bookFormErrors={},bookBusy=false,deleteBookTarget=null,bookActionError='',bookFile=null,bookUploading=false,bookMenuId=null,renameBookTarget=null,readerBook=null,readerPdf=null,readerPage=1,readerRendering=false,readerSaveTimer=null,readerError='',readerZoom=1,readerTouch=null,readerScrollTimer=null;
+let readerPrefs={zoom:1,theme:'white',mode:'paged'};try{const sp=JSON.parse(localStorage.getItem('readerPrefsV1')||'null');if(sp)readerPrefs={...readerPrefs,...sp}}catch(e){}
+function saveReaderPrefs(){try{localStorage.setItem('readerPrefsV1',JSON.stringify(readerPrefs))}catch(e){}}
 let tab='home',level='novice',notif=true,dark=true,client=null,session=null,profile=null,profileSyncError='',authMode=null,authLoading=false,guestBusy=false,logoutBusy=false,requestId=0;
 let articles=[],articlesLoaded=false,articlesError='',favorites=[],favBusyId='',codeView='root',currentChapter='',currentArticleId='',activeCategory='Все',activePart='Общая часть',searchQuery='',noteId='',currentNote='',noteBusy=false,noteLoading=false,noteStatus='',noteError='',noteRequestId=0,codeRequestId=0,articleDirection=0,articleNavigating=false;
 let gameQuestions=[],gameQuestionsLoaded=false,gameQuestionsLoading=false,gameQuestionsError='',gameView='sessions',gameRound=null,gameAnswerBusy=false,gameQuestionRequestId=0;
@@ -518,7 +540,7 @@ if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudfl
 function renderNav(){document.getElementById('sidenav').innerHTML=TABS.map(t=>'<button class="side-link'+(tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],18)+t[1]+'</button>').join('');document.getElementById('bottomnav').innerHTML=TABS.map(t=>'<button class="'+(tab===t[0]?'on':'')+'" aria-label="'+t[1]+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],20)+'<span>'+(SHORT[t[1]]||t[1])+'</span></button>').join('');document.getElementById('bottomnav').style.gridTemplateColumns='repeat('+TABS.length+',1fr)'}
 async function go(t){if(sessionBusy)return;if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return;menuView='modes'}if(t==='game')gameView='sessions';if(t==='profile')profileView='main';if(t==='mistakes')loadMistakes();if(t==='library'){libraryView='list';loadBooks()}else{readerPdf=null;readerBook=null;bookMenuId=null}tab=t;render();scrollTo(0,0);if(t==='game'||t==='home')initializeGameData()}function closeModal(){const m=document.getElementById('modal');if(m)m.style.display='none'}
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();closeAnalysis();closeDetectiveAnalysis();closeReset();closeDeleteBook();closeRenameBook();if(bookMenuId){bookMenuId=null;render()}if(!authLoading)closeAuth();if(!logoutBusy)closeLogout()}
+  if(e.key==='Escape'){closeModal();closeAnalysis();closeDetectiveAnalysis();closeReset();closeDeleteBook();closeRenameBook();closeReaderAA();closeReaderGoto();if(bookMenuId){bookMenuId=null;render()}if(!authLoading)closeAuth();if(!logoutBusy)closeLogout()}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseBlitzTimer();else resumeBlitzTimer()});
   if((e.key==='ArrowLeft'||e.key==='ArrowRight')&&tab==='code'&&codeView==='article'){
     const tag=document.activeElement?.tagName;
@@ -1297,18 +1319,23 @@ async function makeBookCover(userId,bookId,file){
 function readerScreen(){
   const b=readerBook;
   if(!b){libraryView='list';return libraryScreen()}
-  const head='<button class="back-btn" onclick="closeReader()">‹ К библиотеке</button><div class="row" style="justify-content:space-between;align-items:center;gap:10px"><h1 style="font-size:19px;margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(b.title)+'</h1><span class="chip" id="reader-page-ind">'+(readerPdf?'Стр. '+readerPage+' из '+readerPdf.numPages:'…')+'</span></div>';
-  if(readerError)return head+'<div class="card"><h2>Не удалось открыть книгу</h2><p class="error">'+esc(readerError)+'</p><div class="game-answer-actions"><button class="btn-outline" onclick="openBook(\''+b.id+'\')">Повторить</button></div></div>';
-  if(!readerPdf)return head+'<div class="card" style="text-align:center"><div class="spinner" style="margin:10px auto"></div><p class="sub">Открываем книгу…</p></div>';
-  const controls='<div class="row" style="justify-content:space-between;gap:10px"><button class="btn-outline" style="flex:1" onclick="readerGo(-1)" '+(readerPage<=1?'disabled':'')+'>‹ Назад</button><button class="btn-outline" style="flex:none;width:50px" onclick="readerZoomStep(-1)" aria-label="Уменьшить">−</button><button class="btn-outline" style="flex:none;width:50px" onclick="readerZoomStep(1)" aria-label="Увеличить">+</button><button class="btn-outline" style="flex:1" onclick="readerGo(1)" '+(readerPage>=readerPdf.numPages?'disabled':'')+'>Вперёд ›</button></div>';
-  return head+'<div class="card" style="padding:8px;overflow:hidden"><div class="reader-view" id="reader-view"><canvas id="reader-canvas" style="display:block;width:100%;border-radius:6px"></canvas></div></div><div class="reader-thumbs" id="reader-thumbs"></div>'+controls;
+  const themeCls='theme-'+readerPrefs.theme;
+  const top='<div class="reader-top"><button class="reader-tbtn" onclick="closeReader()" aria-label="К библиотеке">'+ic('arrowLeft',20)+'</button><span class="reader-title">'+esc(b.title)+'</span><button class="reader-tbtn reader-aa-btn" onclick="openReaderAA()" aria-label="Настройки чтения">АА</button></div>';
+  if(readerError)return '<div class="reader-full '+themeCls+'" id="reader-full">'+top+'<div class="reader-body" style="padding:16px"><div class="card"><h2>Не удалось открыть книгу</h2><p class="error">'+esc(readerError)+'</p><div class="game-answer-actions"><button class="btn-outline" onclick="openBook(\''+b.id+'\')">Повторить</button></div></div></div></div>';
+  if(!readerPdf)return '<div class="reader-full '+themeCls+'" id="reader-full">'+top+'<div class="reader-body" style="display:flex;align-items:center;justify-content:center"><div style="text-align:center"><div class="spinner" style="margin:10px auto"></div><p class="sub">Открываем книгу…</p></div></div></div>';
+  const chip='<button class="reader-pagechip" id="reader-page-ind" onclick="requestReaderGoto()">'+readerPage+' из '+readerPdf.numPages+'</button>';
+  const body=readerPrefs.mode==='scroll'
+    ?'<div class="reader-body reader-scroll" id="reader-view"></div>'
+    :'<div class="reader-body reader-paged" id="reader-view"><canvas id="reader-canvas" style="display:block;border-radius:6px"></canvas></div>';
+  const bottom='<div class="reader-bottom"><div class="reader-thumbs" id="reader-thumbs"></div><div class="row" style="justify-content:space-between;gap:10px;margin:0"><button class="btn-outline" style="flex:1" onclick="readerGo(-1)" '+(readerPage<=1?'disabled':'')+'>‹ Назад</button><button class="btn-outline" style="flex:none;width:50px" onclick="readerZoomStep(-1)" aria-label="Уменьшить">−</button><button class="btn-outline" style="flex:none;width:50px" onclick="readerZoomStep(1)" aria-label="Увеличить">+</button><button class="btn-outline" style="flex:1" onclick="readerGo(1)" '+(readerPage>=readerPdf.numPages?'disabled':'')+'>Вперёд ›</button></div></div>';
+  return '<div class="reader-full '+themeCls+'" id="reader-full">'+top+chip+body+bottom+'</div>';
 }
 async function openBook(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   bookMenuId=null;readerError='';
   if(!b.file_path){bookActionError='У этой книги нет файла — добавьте её заново с PDF.';if(tab==='library')render();return}
   await flushReaderSave();
-  readerBook=b;readerPdf=null;readerZoom=1;readerTouch=null;readerPage=Math.max(1,b.current_page||1);libraryView='reader';render();scrollTo(0,0);
+  readerBook=b;readerPdf=null;readerZoom=readerPrefs.zoom||1;readerTouch=null;readerPage=Math.max(1,b.current_page||1);libraryView='reader';render();scrollTo(0,0);
   try{
     const{data,error}=await client.storage.from('book-files').createSignedUrl(b.file_path,3600);
     if(error)throw error;
@@ -1317,8 +1344,20 @@ async function openBook(id){
     if(readerBook?.id!==id)return;
     readerPdf=pdf;
     if(b.page_count!==pdf.numPages){b.page_count=pdf.numPages;books=books.map(x=>x.id===b.id?{...x,page_count:pdf.numPages}:x);client.from('user_books').update({page_count:pdf.numPages}).eq('id',b.id).then(()=>{})}
-    render();renderReaderPage();buildReaderThumbs();
+    render();initReaderBody();
   }catch(e){if(readerBook?.id===id){readerError=gameErrorText(e);render()}}
+}
+async function initReaderBody(){
+  if(!readerPdf)return;
+  applyReaderTheme();
+  setupReaderTouch();
+  if(readerPrefs.mode==='scroll'){
+    await buildReaderScroll();
+    const view=document.getElementById('reader-view'),slot=view?.querySelector('.reader-slot[data-page="'+readerPage+'"]');
+    if(slot)view.scrollTop=slot.offsetTop-8;
+    renderVisiblePages();
+  }else renderReaderPage();
+  buildReaderThumbs();
 }
 async function renderReaderPage(){
   if(!readerPdf||readerRendering)return;readerRendering=true;
@@ -1331,24 +1370,42 @@ async function renderReaderPage(){
     canvas.width=viewport.width;canvas.height=viewport.height;
     canvas.style.width=(viewport.width/dpr)+'px';
     await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
-    const ind=document.getElementById('reader-page-ind');if(ind)ind.textContent='Стр. '+readerPage+' из '+readerPdf.numPages;
-    setupReaderTouch();markReaderThumb();
+    updateReaderInd();markReaderThumb();
     scheduleReaderSave();
   }finally{readerRendering=false}
 }
+function updateReaderInd(){const ind=document.getElementById('reader-page-ind');if(ind&&readerPdf)ind.textContent=readerPage+' из '+readerPdf.numPages}
 function readerGo(delta){readerGoTo(readerPage+delta)}
 function readerGoTo(n){
-  if(!readerPdf||readerRendering)return;
+  if(!readerPdf)return;
   const next=Math.min(readerPdf.numPages,Math.max(1,n));
-  if(next===readerPage)return;
+  if(readerPrefs.mode==='scroll'){
+    readerPage=next;
+    const view=document.getElementById('reader-view'),slot=view?.querySelector('.reader-slot[data-page="'+next+'"]');
+    if(slot)view.scrollTop=slot.offsetTop-8;
+    updateReaderInd();markReaderThumb();renderVisiblePages();scheduleReaderSave();
+    return;
+  }
+  if(next===readerPage||readerRendering)return;
   readerPage=next;renderReaderPage();scrollTo(0,0);
-  const ind=document.getElementById('reader-page-ind');if(ind)ind.textContent='Стр. '+readerPage+' из '+readerPdf.numPages;
+  updateReaderInd();
 }
 function readerZoomStep(dir){
   if(!readerPdf)return;
-  const next=Math.min(4,Math.max(1,Math.round((readerZoom+dir*0.5)*10)/10));
+  const next=Math.min(3,Math.max(1,Math.round((readerZoom+dir*0.5)*10)/10));
   if(next===readerZoom)return;
-  readerZoom=next;renderReaderPage();
+  readerZoom=next;readerApplyZoom();
+}
+function readerApplyZoom(){
+  if(readerPrefs.mode==='scroll'){
+    const view=document.getElementById('reader-view');if(!view)return;
+    view.querySelectorAll('.reader-slot').forEach(s=>{delete s.dataset.done;const c=s.querySelector('canvas');if(c)c.remove()});
+    renderVisiblePages();
+  }else renderReaderPage();
+}
+function applyReaderTheme(){
+  const el=document.getElementById('reader-full');if(!el)return;
+  el.classList.remove('theme-white','theme-sepia','theme-dark');el.classList.add('theme-'+readerPrefs.theme);
 }
 /* --- Свайпы, щипок, двойной тап --- */
 function setupReaderTouch(){
@@ -1373,22 +1430,31 @@ function setupReaderTouch(){
     if(readerTouch.mode==='pinch'){
       if(e.touches.length<2){
         const k=readerTouch.startDist?readerTouch.lastDist/readerTouch.startDist:1;
-        const next=Math.min(4,Math.max(1,Math.round(readerTouch.startZoom*k*20)/20));
+        const next=Math.min(3,Math.max(1,Math.round(readerTouch.startZoom*k*20)/20));
         readerTouch=null;
-        if(Math.abs(next-readerZoom)>0.02){readerZoom=next;renderReaderPage()}
+        if(Math.abs(next-readerZoom)>0.02){readerZoom=next;readerApplyZoom()}
       }
       return;
     }
     if(readerTouch.mode==='swipe'&&e.touches.length===0){
       const t=e.changedTouches[0],dx=t.clientX-readerTouch.x,dy=t.clientY-readerTouch.y,dt=Date.now()-readerTouch.time;
-      const dbl=readerTouch.dbl;readerTouch={mode:'tapwait',time:readerTouch.time};
+      const dbl=readerTouch.dbl,cx=t.clientX;
+      readerTouch={mode:'tapwait',time:Date.now()};
       if(Math.abs(dx)<12&&Math.abs(dy)<12&&dt<300){
-        if(dbl){readerTouch=null;readerZoom=readerZoom>1?1:2;renderReaderPage()}
+        if(dbl){readerTouch=null;readerZoom=readerZoom>1?1:2;readerApplyZoom()}
+        else setTimeout(()=>{if(readerTouch&&readerTouch.mode==='tapwait'){readerTouch=null;readerTap(cx)}},330);
         return;
       }
-      if(readerZoom===1&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)readerGo(dx<0?1:-1);
+      if(readerPrefs.mode!=='scroll'&&readerZoom===1&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)readerGo(dx<0?1:-1);
     }
   },{passive:true});
+}
+function readerTap(x){
+  const view=document.getElementById('reader-view');if(!view||!readerPdf)return;
+  const r=view.getBoundingClientRect(),rel=x-r.left;
+  if(rel<r.width/3){readerGo(-1);return}
+  if(rel>r.width*2/3){readerGo(1);return}
+  const full=document.getElementById('reader-full');if(full)full.classList.toggle('hide-ui');
 }
 function touchDist(e){const a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
 /* --- Полоска превью страниц --- */
@@ -1426,6 +1492,84 @@ function markReaderThumb(){
   strip.querySelectorAll('.reader-thumb.current').forEach(el=>el.classList.remove('current'));
   const cur=strip.querySelector('.reader-thumb[data-page="'+readerPage+'"]');
   if(cur){cur.classList.add('current');cur.scrollIntoView({block:'nearest',inline:'center'})}
+}
+/* --- Режим непрерывной прокрутки --- */
+async function buildReaderScroll(){
+  const view=document.getElementById('reader-view');if(!view||!readerPdf)return;
+  let ratio='595 / 842';
+  try{const p1=await readerPdf.getPage(1);const v=p1.getViewport({scale:1});ratio=Math.round(v.width)+' / '+Math.round(v.height)}catch(e){}
+  let html='';
+  for(let n=1;n<=readerPdf.numPages;n++)html+='<div class="reader-slot" data-page="'+n+'" style="aspect-ratio:'+ratio+'"></div>';
+  view.innerHTML=html;
+  view.onscroll=()=>{renderVisiblePages();readerScrollPageDetect()};
+}
+function renderVisiblePages(){
+  const view=document.getElementById('reader-view');if(!view||!readerPdf)return;
+  const top=view.scrollTop,bottom=top+view.clientHeight,pad=view.clientHeight;
+  view.querySelectorAll('.reader-slot:not([data-done])').forEach(slot=>{
+    const sTop=slot.offsetTop,sBot=sTop+slot.offsetHeight;
+    if(sBot>top-pad&&sTop<bottom+pad){slot.dataset.done='1';renderScrollPage(+slot.dataset.page)}
+  });
+}
+async function renderScrollPage(n){
+  const view=document.getElementById('reader-view');if(!view||!readerPdf)return;
+  const slot=view.querySelector('.reader-slot[data-page="'+n+'"]');if(!slot)return;
+  try{
+    const page=await readerPdf.getPage(n);
+    const base=page.getViewport({scale:1}),dpr=Math.min(2,window.devicePixelRatio||1);
+    const cssW=view.clientWidth*readerZoom;
+    slot.style.aspectRatio=Math.round(base.width)+' / '+Math.round(base.height);
+    const scale=cssW/base.width*dpr,viewport=page.getViewport({scale});
+    let canvas=slot.querySelector('canvas');if(!canvas){canvas=document.createElement('canvas');slot.appendChild(canvas)}
+    canvas.width=viewport.width;canvas.height=viewport.height;canvas.style.width=cssW+'px';
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+  }catch(e){}
+}
+function readerScrollPageDetect(){
+  clearTimeout(readerScrollTimer);
+  readerScrollTimer=setTimeout(()=>{
+    const view=document.getElementById('reader-view');if(!view||!readerPdf||readerPrefs.mode!=='scroll')return;
+    const probe=view.scrollTop+view.clientHeight*0.25;let cur=1;
+    view.querySelectorAll('.reader-slot').forEach(s=>{if(s.offsetTop<=probe)cur=+s.dataset.page});
+    if(cur!==readerPage){readerPage=cur;updateReaderInd();markReaderThumb();scheduleReaderSave()}
+  },80);
+}
+/* --- Настройки «АА» и переход на страницу --- */
+function openReaderAA(){
+  if(!readerPdf)return;
+  let modal=document.getElementById('reader-aa');
+  if(!modal){modal=document.createElement('div');modal.id='reader-aa';modal.className='overlay';document.body.appendChild(modal)}
+  const p=readerPrefs;
+  const opt=(cur,val,label,onclick)=>'<button class="btn-outline'+(cur===val?' aa-on':'')+'" style="flex:1;min-height:44px" onclick="'+onclick+'">'+label+'</button>';
+  modal.innerHTML='<div class="box card"><h2>Настройки чтения</h2>'
+    +'<div class="form-label">Масштаб</div><div class="row" style="width:100%">'+[1,1.25,1.5,2].map(z=>opt(p.zoom,z,Math.round(z*100)+'%','setReaderPref(\'zoom\','+z+')')).join('')+'</div>'
+    +'<div class="form-label">Тема</div><div class="row" style="width:100%">'+[['white','Белая'],['sepia','Сепия'],['dark','Тёмная']].map(t=>opt(p.theme,t[0],t[1],'setReaderPref(\'theme\',\''+t[0]+'\')')).join('')+'</div>'
+    +'<div class="form-label">Листание</div><div class="row" style="width:100%">'+[['paged','Постранично'],['scroll','Прокрутка']].map(m=>opt(p.mode,m[0],m[1],'setReaderPref(\'mode\',\''+m[0]+'\')')).join('')+'</div>'
+    +'<div class="row" style="width:100%;margin-top:10px"><button class="btn-gold" style="flex:1" onclick="closeReaderAA()">Готово</button></div></div>';
+  modal.style.display='flex';
+}
+function closeReaderAA(){const m=document.getElementById('reader-aa');if(m)m.style.display='none'}
+function setReaderPref(key,val){
+  readerPrefs={...readerPrefs,[key]:val};saveReaderPrefs();
+  if(key==='zoom'){readerZoom=val;readerApplyZoom()}
+  else if(key==='theme')applyReaderTheme();
+  else if(key==='mode'){render();initReaderBody()}
+  openReaderAA();
+}
+function requestReaderGoto(){
+  if(!readerPdf)return;
+  let modal=document.getElementById('reader-goto');
+  if(!modal){modal=document.createElement('div');modal.id='reader-goto';modal.className='overlay';document.body.appendChild(modal)}
+  modal.innerHTML='<div class="box card"><h2>Перейти на страницу</h2><input id="reader-goto-input" class="field" type="number" inputmode="numeric" min="1" max="'+readerPdf.numPages+'" placeholder="От 1 до '+readerPdf.numPages+'"><p id="reader-goto-error" class="error"></p><div class="row" style="width:100%"><button class="btn-outline" style="flex:1" onclick="closeReaderGoto()">Отмена</button><button class="btn-gold" style="flex:1" onclick="confirmReaderGoto()">Перейти</button></div></div>';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('reader-goto-input')?.focus(),50);
+}
+function closeReaderGoto(){const m=document.getElementById('reader-goto');if(m)m.style.display='none'}
+function confirmReaderGoto(){
+  if(!readerPdf)return;
+  const v=parseInt(document.getElementById('reader-goto-input')?.value,10);
+  if(!v||v<1||v>readerPdf.numPages){document.getElementById('reader-goto-error').textContent='Введите номер от 1 до '+readerPdf.numPages;return}
+  closeReaderGoto();readerGoTo(v);
 }
 function scheduleReaderSave(){clearTimeout(readerSaveTimer);readerSaveTimer=setTimeout(flushReaderSave,700)}
 async function flushReaderSave(){
@@ -1739,7 +1883,7 @@ async function saveProfileName(){
 }
 function profileScreen(){const p=profileBits();if(profileView==='stats')return '<button class="back-btn" onclick="profileView=\'main\';render()">‹ Назад к профилю</button>'+statsScreen();if(profileView==='edit')return '<button class="back-btn" onclick="profileView=\'main\';render()">‹ Назад к профилю</button>'+editProfileScreen();return header('Личный кабинет','Про<span class="goldtext">филь</span>')+'<div class="card row">'+avatar(68,p.initial)+'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><h2>'+esc(p.name)+'</h2><span class="chip">'+p.levelName+'</span></div><p style="font-size:13px;color:var(--silver);margin-top:4px">'+profile.points+' баллов · уровень '+profile.level+' из 20</p><div class="progress"><span style="width:'+p.progress+'%"></span></div></div></div>'+savedArticlesHTML()+statsLinkHTML()+guestNoticeHTML()+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Настройки</p><div class="card row">'+iconbox('user')+'<div style="flex:1"><h2 style="font-size:16px">Публичный профиль</h2><p style="font-size:12px;color:var(--dim)">Участие в рейтинге «Борьбы умов»</p></div><span class="chip">Скоро</span></div>'+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Ещё</p><div class="card" style="padding:8px 20px">'+'<button class="listbtn" onclick="profileView=\'edit\';render()">'+iconbox('user',false,16)+'<span style="flex:1">Редактировать профиль</span>'+ic('chevron',15)+'</button>'+[['О приложении','document'],['Конфиденциальность','shield']].map(r=>'<button class="listbtn" disabled style="opacity:.55;cursor:default">'+iconbox(r[1],false,16)+'<span style="flex:1">'+r[0]+'</span><span class="chip">Скоро</span></button>').join('')+'</div><button class="btn-outline" style="width:100%;border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="openLogout()">Выйти из аккаунта</button><div class="row" style="justify-content:space-between;padding:0 4px"><p class="note" style="padding:0">Борьба умов · Бета 0.1 · уголовное право РФ</p><span class="chip chip-wine">Бета</span></div>'}
 const SCREENS={home:homeScreen,code:codeScreen,library:libraryScreen,game:gameScreen,mistakes:mistakesScreen,profile:profileScreen};
-function render(){if(!profile)return;stopBlitzTimer();if(!SCREENS[tab])tab='home';const ae=document.activeElement,focusId=ae&&ae.id?ae.id:'',sel=(focusId&&typeof ae.selectionStart==='number')?[ae.selectionStart,ae.selectionEnd]:null,sy=window.scrollY;renderNav();const main=document.getElementById('main');main.classList.toggle('code-main',tab==='code');main.classList.toggle('game-main',tab==='game');main.innerHTML='<div class="screen">'+SCREENS[tab]()+'</div>';if(focusId){const el=document.getElementById(focusId);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}else if(sy)window.scrollTo(0,sy);if(tab==='code'&&codeView==='article')requestAnimationFrame(initArticleTOC);if(tab==='game'&&gameView==='blitz'&&blitzRound){const e=currentBlitzEntry();if(e&&!e.answered&&blitzRound.deadline)scheduleBlitzTick()}}
+function render(){if(!profile)return;stopBlitzTimer();if(!SCREENS[tab])tab='home';const ae=document.activeElement,focusId=ae&&ae.id?ae.id:'',sel=(focusId&&typeof ae.selectionStart==='number')?[ae.selectionStart,ae.selectionEnd]:null,sy=window.scrollY;renderNav();const main=document.getElementById('main');main.classList.toggle('code-main',tab==='code');main.classList.toggle('game-main',tab==='game');main.innerHTML='<div class="screen">'+SCREENS[tab]()+'</div>';if(focusId){const el=document.getElementById(focusId);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}else if(sy)window.scrollTo(0,sy);if(tab==='code'&&codeView==='article')requestAnimationFrame(initArticleTOC);if(tab==='library'&&libraryView==='reader'&&readerPdf)requestAnimationFrame(initReaderBody);if(tab==='game'&&gameView==='blitz'&&blitzRound){const e=currentBlitzEntry();if(e&&!e.answered&&blitzRound.deadline)scheduleBlitzTick()}}
 function setupHTML(){return '<div class="setup"><h2 style="font-size:18px">Сначала подключите Supabase</h2><ol><li>Создайте проект на supabase.com и откройте <b>Project Settings → API</b>.</li><li>В начале этого HTML-файла найдите <code>SUPABASE_URL</code> и <code>SUPABASE_ANON_KEY</code>. Вставьте Project URL и anon public key между кавычками. service_role key использовать нельзя.</li><li>В <b>SQL Editor</b> выполните миграцию ниже: она создаёт user_profiles, favorites, user_notes и RLS-политики.</li><li>Включите <b>Authentication → Sign In / Providers → Email и Anonymous</b>. Для входа сразу после регистрации отключите Confirm email.</li><li>Сохраните HTML и откройте его снова.</li></ol><details class="sql"><summary>Показать SQL-миграцию</summary><button class="btn-outline" style="margin-top:12px;font-size:12px;min-height:38px;padding:8px 14px" onclick="copySQL(this)">Скопировать SQL</button><pre>'+esc(document.getElementById('sql-migration').textContent)+'</pre></details></div>'}
 function openAuth(mode){authMode=mode;authLoading=false;guestBusy=false;renderAuth();document.getElementById('auth').style.display='flex';if(mode==='guest'&&configured)setTimeout(startGuest,0)}
 function closeAuth(){if(authLoading)return;document.getElementById('auth').style.display='none';authMode=null}
