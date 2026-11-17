@@ -1223,11 +1223,13 @@ function bookFileChosen(el){
 }
 async function downloadBook(id){
   const b=books.find(x=>x.id===id);if(!b?.file_path)return;
+  const w=window.open('','_blank');
+  if(w)w.document.write('<p style="font-family:sans-serif;color:#888;padding:24px">Открываем PDF…</p>');
   try{
     const{data,error}=await client.storage.from('book-files').createSignedUrl(b.file_path,60);
     if(error)throw error;
-    window.open(data.signedUrl,'_blank');
-  }catch(e){bookActionError='Не удалось открыть файл: '+gameErrorText(e);if(tab==='library')render()}
+    if(w)w.location.href=data.signedUrl;else location.href=data.signedUrl;
+  }catch(e){if(w)w.close();bookActionError='Не удалось открыть файл: '+gameErrorText(e);if(tab==='library')render()}
 }
 function openBookForm(id){
   activeBookId=id||null;bookFile=null;bookFileRemove=false;
