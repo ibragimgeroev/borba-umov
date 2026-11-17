@@ -1,8 +1,9 @@
-const P={scales:'<path d="M12 3v18M5 6h14M12 3l-1.5 2h3L12 3M5 6l-3 7a4 4 0 0 0 6 0L5 6zM19 6l-3 7a4 4 0 0 0 6 0l-3-7zM8 21h8M12 17l-3 4M12 17l3 4"/>',column:'<path d="M4 21h16M5 18h14M6 18V8M18 18V8M9 18V8M12 18V8M15 18V8M4 8h16M5 5h14l1 3H4l1-3z"/>',gavel:'<path d="M13 6l5 5M8 11l5 5M9 4l8 8-3 3-8-8 3-3zM4 12l8 8-3 3-8-8 3-3zM3 21h9M14 14l7 7" transform="scale(.85) translate(2 1)"/>',document:'<path d="M6 3h9l4 4v14H6V3zM15 3v4h4M9 11h7M9 15h7M9 7h3"/>',shield:'<path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3zM9 12l2 2 4-4"/>',home:'<path d="M4 11l8-7 8 7M6 9v11h12V9M10 20v-6h4v6"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/>',rotate:'<path d="M4 12a8 8 0 1 1 2 6M4 12V6M4 12h6M9 9h6v6H9z"/>',chart:'<path d="M4 4v16h16M8 15v-4M12 15V8M16 15v-6M7 7l4-2 4 3 4-3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 5-6 8-6s7 1 8 6"/>',lightning:'<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',search:'<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',chevron:'<path d="M9 5l7 7-7 7"/>',bell:'<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/>',trophy:'<path d="M8 4h8v6a4 4 0 0 1-8 0V4zM8 5H4v3a3 3 0 0 0 4 3M16 5h4v3a3 3 0 0 1-4 3M12 14v4M8 21h8M10 18h4"/>',check:'<path d="M5 12l5 5L20 7"/>',moon:'<path d="M20 13A8 8 0 0 1 11 4 8 8 0 1 0 20 13z"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3z"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>'};
+const P={scales:'<path d="M12 3v18M5 6h14M12 3l-1.5 2h3L12 3M5 6l-3 7a4 4 0 0 0 6 0L5 6zM19 6l-3 7a4 4 0 0 0 6 0l-3-7zM8 21h8M12 17l-3 4M12 17l3 4"/>',column:'<path d="M4 21h16M5 18h14M6 18V8M18 18V8M9 18V8M12 18V8M15 18V8M4 8h16M5 5h14l1 3H4l1-3z"/>',gavel:'<path d="M13 6l5 5M8 11l5 5M9 4l8 8-3 3-8-8 3-3zM4 12l8 8-3 3-8-8 3-3zM3 21h9M14 14l7 7" transform="scale(.85) translate(2 1)"/>',document:'<path d="M6 3h9l4 4v14H6V3zM15 3v4h4M9 11h7M9 15h7M9 7h3"/>',shield:'<path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3zM9 12l2 2 4-4"/>',home:'<path d="M4 11l8-7 8 7M6 9v11h12V9M10 20v-6h4v6"/>',target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/>',rotate:'<path d="M4 12a8 8 0 1 1 2 6M4 12V6M4 12h6M9 9h6v6H9z"/>',chart:'<path d="M4 4v16h16M8 15v-4M12 15V8M16 15v-6M7 7l4-2 4 3 4-3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 5-6 8-6s7 1 8 6"/>',lightning:'<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',search:'<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',chevron:'<path d="M9 5l7 7-7 7"/>',bell:'<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0"/>',trophy:'<path d="M8 4h8v6a4 4 0 0 1-8 0V4zM8 5H4v3a3 3 0 0 0 4 3M16 5h4v3a3 3 0 0 1-4 3M12 14v4M8 21h8M10 18h4"/>',check:'<path d="M5 12l5 5L20 7"/>',moon:'<path d="M20 13A8 8 0 0 1 11 4 8 8 0 1 0 20 13z"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3z"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'};
 function ic(n,s){return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+(P[n]||'')+'</svg>'}
 function mountIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=ic(e.dataset.icon,+e.dataset.size||20))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-const TABS=[['home','Главная','home'],['code','Кодекс','document'],['game','Игра','target'],['mistakes','Ошибки','rotate'],['profile','Профиль','user']],SHORT={};let profileView='main',editProfileBusy=false,editProfileError='';
+const TABS=[['home','Главная','home'],['code','Кодекс','document'],['library','Библиотека','book'],['game','Игра','target'],['mistakes','Ошибки','rotate'],['profile','Профиль','user']],SHORT={'Библиотека':'Книги'};let profileView='main',editProfileBusy=false,editProfileError='';
+let books=[],booksLoaded=false,booksLoading=false,booksError='',booksRequestId=0,libraryView='list',bookFilter='all',bookSearch='',bookDraft=null,bookFormErrors={},bookBusy=false,activeBookId=null,deleteBookTarget=null,bookActionError='';
 let tab='home',level='novice',notif=true,dark=true,client=null,session=null,profile=null,profileSyncError='',authMode=null,authLoading=false,guestBusy=false,logoutBusy=false,requestId=0;
 let articles=[],articlesLoaded=false,articlesError='',favorites=[],favBusyId='',codeView='root',currentChapter='',currentArticleId='',activeCategory='Все',activePart='Общая часть',searchQuery='',noteId='',currentNote='',noteBusy=false,noteLoading=false,noteStatus='',noteError='',noteRequestId=0,codeRequestId=0,articleDirection=0,articleNavigating=false;
 let gameQuestions=[],gameQuestionsLoaded=false,gameQuestionsLoading=false,gameQuestionsError='',gameView='sessions',gameRound=null,gameAnswerBusy=false,gameQuestionRequestId=0;
@@ -11,10 +12,10 @@ let blitzRound=null,blitzAnswerBusy=false,blitzTimerId=null,blitzTop=null,blitzT
 let gameSessions=[],gameSessionsLoaded=false,gameSessionsLoading=false,gameSessionsError='',detectiveScenarios=[],detectiveScenariosLoaded=false,detectiveScenariosLoading=false,detectiveScenariosError='',detectiveRound=null,menuView='modes',sessionBusy=false,sessionError='',resetTarget=null,detectiveAnswerBusy=false,gameDataRequestId=0,detectiveScenarioRequestId=0;
 let sessionSaveQueue=Promise.resolve(),gameSessionsPromise=null;
 const configured=SUPABASE_URL.startsWith('https://')&&SUPABASE_ANON_KEY.length>20;
-function renderNav(){document.getElementById('sidenav').innerHTML=TABS.map(t=>'<button class="side-link'+(tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],18)+t[1]+'</button>').join('');document.getElementById('bottomnav').innerHTML=TABS.map(t=>'<button class="'+(tab===t[0]?'on':'')+'" aria-label="'+t[1]+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],20)+'<span>'+(SHORT[t[1]]||t[1])+'</span></button>').join('')}
-async function go(t){if(sessionBusy)return;if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return;menuView='modes'}if(t==='game')gameView='sessions';if(t==='profile')profileView='main';if(t==='mistakes')loadMistakes();tab=t;render();scrollTo(0,0);if(t==='game'||t==='home')initializeGameData()}function closeModal(){const m=document.getElementById('modal');if(m)m.style.display='none'}
+function renderNav(){document.getElementById('sidenav').innerHTML=TABS.map(t=>'<button class="side-link'+(tab===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],18)+t[1]+'</button>').join('');document.getElementById('bottomnav').innerHTML=TABS.map(t=>'<button class="'+(tab===t[0]?'on':'')+'" aria-label="'+t[1]+'" onclick="go(\''+t[0]+'\')">'+ic(t[2],20)+'<span>'+(SHORT[t[1]]||t[1])+'</span></button>').join('');document.getElementById('bottomnav').style.gridTemplateColumns='repeat('+TABS.length+',1fr)'}
+async function go(t){if(sessionBusy)return;if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return;menuView='modes'}if(t==='game')gameView='sessions';if(t==='profile')profileView='main';if(t==='mistakes')loadMistakes();if(t==='library'){libraryView='list';loadBooks()}tab=t;render();scrollTo(0,0);if(t==='game'||t==='home')initializeGameData()}function closeModal(){const m=document.getElementById('modal');if(m)m.style.display='none'}
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();closeAnalysis();closeDetectiveAnalysis();closeReset();if(!authLoading)closeAuth();if(!logoutBusy)closeLogout()}
+  if(e.key==='Escape'){closeModal();closeAnalysis();closeDetectiveAnalysis();closeReset();closeDeleteBook();if(!authLoading)closeAuth();if(!logoutBusy)closeLogout()}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseBlitzTimer();else resumeBlitzTimer()});
   if((e.key==='ArrowLeft'||e.key==='ArrowRight')&&tab==='code'&&codeView==='article'){
     const tag=document.activeElement?.tagName;
@@ -676,6 +677,133 @@ async function resetBlitzSession(record){
   }catch(error){blitzRound=previous;sessionError=gameErrorText(error);return false}
 }
 /* ===== /Блиц ===== */
+/* ===== Библиотека ===== */
+const BOOK_STATUSES=[['want','Хочу прочитать'],['reading','Читаю'],['done','Прочитано']];
+function bookStatusName(s){return(BOOK_STATUSES.find(x=>x[0]===s)||[])[1]||s}
+async function loadBooks(force){
+  const userId=session?.user.id;if(!userId||booksLoading||(booksLoaded&&!force))return;
+  const request=++booksRequestId;booksLoading=true;booksError='';if(tab==='library')render();
+  const{data,error}=await client.from('user_books').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+  if(request!==booksRequestId||session?.user.id!==userId)return;
+  booksLoading=false;booksLoaded=true;
+  if(error)booksError=gameErrorText(error);else books=data||[];
+  if(tab==='library')render();
+}
+function filteredBooks(){
+  const q=bookSearch.trim().toLowerCase();
+  return books.filter(b=>(bookFilter==='all'||b.status===bookFilter)&&(!q||(b.title||'').toLowerCase().includes(q)||(b.author||'').toLowerCase().includes(q)));
+}
+function libraryScreen(){
+  if(libraryView==='form')return '<button class="back-btn" onclick="libraryView=\'list\';render()">‹ Назад к библиотеке</button>'+bookFormScreen();
+  if(libraryView==='detail')return '<button class="back-btn" onclick="libraryView=\'list\';render()">‹ Назад к библиотеке</button>'+bookDetailScreen();
+  const h=header('Библиотека','Ваши <span class="goldtext">книги</span>','Собирайте литературу по праву: отмечайте, что читаете, и ставьте оценки.');
+  if(booksLoading&&!booksLoaded)return h+'<div class="card" style="text-align:center"><div class="spinner" style="margin:10px auto"></div><p class="sub">Загружаем ваши книги…</p></div>';
+  if(booksError)return h+'<div class="card"><h2>Не удалось загрузить библиотеку</h2><p class="error">'+esc(booksError)+'</p><button class="btn-outline" onclick="loadBooks(true)">Повторить</button></div>';
+  if(!books.length)return h+'<div class="card" style="text-align:center;padding:44px 22px"><div style="display:flex;justify-content:center;margin-bottom:18px"><div class="iconbox" style="width:72px;height:72px;border-radius:16px">'+ic('book',36)+'</div></div><h2 style="font-size:21px">Пока ни одной книги</h2><p class="sub" style="margin:10px auto 20px;max-width:340px">Добавьте первую книгу — например, учебник по уголовному праву или комментарий к УК РФ.</p><button class="btn-gold" onclick="openBookForm()">'+ic('book',15)+' Добавить книгу</button></div>';
+  const c={all:books.length,want:books.filter(b=>b.status==='want').length,reading:books.filter(b=>b.status==='reading').length,done:books.filter(b=>b.status==='done').length};
+  const counters='<div class="grid4">'+[['Всего',c.all],['Хочу прочитать',c.want],['Читаю',c.reading],['Прочитано',c.done]].map(x=>'<div class="card" style="padding:14px 16px"><p class="serif" style="font-size:22px;font-weight:700;margin:0">'+x[1]+'</p><p style="font-size:11px;color:var(--silver);margin:2px 0 0">'+x[0]+'</p></div>').join('')+'</div>';
+  const add='<button class="btn-gold" style="width:100%" onclick="openBookForm()">'+ic('book',15)+' Добавить книгу</button>';
+  const filters='<div class="row" style="flex-wrap:wrap;gap:8px">'+[['all','Все'],['want','Хочу прочитать'],['reading','Читаю'],['done','Прочитано']].map(f=>'<button class="chip" style="min-height:44px;padding:0 16px;cursor:pointer;'+(bookFilter===f[0]?'color:var(--gold2);border-color:var(--gold)':'')+'" onclick="bookFilter=\''+f[0]+'\';render()">'+f[1]+'</button>').join('')+'</div>';
+  const search='<input id="book-search" class="search" type="search" placeholder="Поиск по названию или автору" value="'+esc(bookSearch)+'" oninput="bookSearchInput(this)">';
+  return h+counters+add+filters+search+(bookActionError?'<p class="notice">'+esc(bookActionError)+'</p>':'')+'<div id="book-list">'+bookListHTML()+'</div>';
+}
+function bookSearchInput(el){bookSearch=el.value;const box=document.getElementById('book-list');if(box)box.innerHTML=bookListHTML()}
+function bookListHTML(){
+  const list=filteredBooks();
+  if(!list.length)return'<div class="card" style="text-align:center"><p class="sub" style="margin:0">Ничего не найдено — измените фильтр или запрос.</p></div>';
+  return list.map(b=>{
+    const stars=b.rating?'<span style="color:var(--gold2);font-size:13px;letter-spacing:2px;white-space:nowrap">'+'★'.repeat(b.rating)+'<span style="color:var(--dim)">'+'★'.repeat(5-b.rating)+'</span></span>':'';
+    const meta=[b.author,b.year,b.category].filter(v=>v!==null&&v!==''&&v!==undefined).map(esc).join(' · ');
+    const notes=b.notes?'<p class="note" style="padding:0;margin-top:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esc(b.notes)+'</p>':'';
+    const statusBtns=BOOK_STATUSES.map(s=>'<button class="chip" style="min-height:44px;padding:0 12px;cursor:pointer;'+(b.status===s[0]?'color:var(--gold2);border-color:var(--gold)':'')+'" data-action="setBookStatus" data-arg="'+b.id+'" data-status="'+s[0]+'" '+(bookBusy?'disabled':'')+'>'+s[1]+'</button>').join('');
+    return'<div class="card"><div style="cursor:pointer" data-action="openBook" data-arg="'+b.id+'"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><h2 style="font-size:17px;flex:1;margin:0">'+esc(b.title)+'</h2>'+stars+'</div>'+(meta?'<p style="font-size:13px;color:var(--silver);margin-top:4px">'+meta+'</p>':'')+notes+'</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">'+statusBtns+'</div></div>';
+  }).join('');
+}
+function openBook(id){if(!books.find(x=>x.id===id))return;activeBookId=id;libraryView='detail';render();scrollTo(0,0)}
+function bookDetailScreen(){
+  const b=books.find(x=>x.id===activeBookId);
+  if(!b){libraryView='list';return libraryScreen()}
+  const stars=b.rating?'★'.repeat(b.rating)+'<span style="color:var(--dim)">'+'★'.repeat(5-b.rating)+'</span>':'<span style="color:var(--dim);letter-spacing:0">Без оценки</span>';
+  const rows=[['Автор',b.author?esc(b.author):''],['Год',b.year?esc(b.year):''],['Категория',b.category?esc(b.category):'']].filter(r=>r[1]!=='').map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
+  return header('Библиотека',esc(b.title),'')+'<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:10px"><span class="chip">'+bookStatusName(b.status)+'</span><span style="color:var(--gold2);letter-spacing:2px">'+stars+'</span></div>'+(rows?'<dl style="margin-top:16px">'+rows+'</dl>':'')+(b.link?'<p style="margin-top:12px"><a class="gold" href="'+esc(b.link)+'" target="_blank" rel="noopener noreferrer">'+esc(b.link)+' ↗</a></p>':'')+(b.notes?'<div class="result-section"><h3>Заметки</h3><p style="white-space:pre-wrap">'+esc(b.notes)+'</p></div>':'')+'<div class="game-answer-actions"><button class="btn-gold" onclick="openBookForm(\''+b.id+'\')">Редактировать</button><button class="btn-outline" style="border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="requestDeleteBook(\''+b.id+'\')">Удалить</button></div></div>';
+}
+function openBookForm(id){
+  activeBookId=id||null;
+  const b=id?books.find(x=>x.id===id):null;
+  bookDraft=b?{title:b.title||'',author:b.author||'',year:b.year??'',category:b.category||'',status:b.status||'want',rating:b.rating??'',notes:b.notes||'',link:b.link||''}:{title:'',author:'',year:'',category:'',status:'want',rating:'',notes:'',link:''};
+  bookFormErrors={};libraryView='form';render();scrollTo(0,0);
+}
+function bookFormScreen(){
+  const d=bookDraft||{},e=bookFormErrors,err=k=>e[k]?'<p class="error">'+esc(e[k])+'</p>':'';
+  const cats=[...new Set(books.map(b=>b.category).filter(Boolean))];
+  return header(activeBookId?'Редактирование':'Новая книга',activeBookId?'Изменить <span class="goldtext">книгу</span>':'Добавить <span class="goldtext">книгу</span>')+'<div class="card">'
+    +'<label class="form-label">Название *<input id="book-f-title" class="field" type="text" maxlength="200" value="'+esc(d.title)+'" placeholder="Уголовное право. Общая часть"></label>'+err('title')
+    +'<label class="form-label">Автор<input id="book-f-author" class="field" type="text" maxlength="200" value="'+esc(d.author)+'" placeholder="Иванов И. И."></label>'+err('author')
+    +'<label class="form-label">Год<input id="book-f-year" class="field" type="number" inputmode="numeric" min="1000" max="'+(new Date().getFullYear()+1)+'" value="'+esc(d.year)+'" placeholder="2024"></label>'+err('year')
+    +'<label class="form-label">Категория<input id="book-f-category" class="field" type="text" maxlength="100" list="book-cats" value="'+esc(d.category)+'" placeholder="Уголовное право"></label><datalist id="book-cats">'+cats.map(c=>'<option value="'+esc(c)+'">').join('')+'</datalist>'+err('category')
+    +'<label class="form-label">Статус<select id="book-f-status" class="field">'+BOOK_STATUSES.map(s=>'<option value="'+s[0]+'"'+(d.status===s[0]?' selected':'')+'>'+s[1]+'</option>').join('')+'</select></label>'
+    +'<label class="form-label">Оценка<select id="book-f-rating" class="field"><option value="">Без оценки</option>'+[1,2,3,4,5].map(r=>'<option value="'+r+'"'+(String(d.rating)===String(r)?' selected':'')+'>'+'★'.repeat(r)+'</option>').join('')+'</select></label>'
+    +'<label class="form-label">Заметки<textarea id="book-f-notes" class="field" rows="4" maxlength="2000" placeholder="Мысли, закладки, цитаты">'+esc(d.notes)+'</textarea></label>'+err('notes')
+    +'<label class="form-label">Ссылка<input id="book-f-link" class="field" type="url" value="'+esc(d.link)+'" placeholder="https://…"></label>'+err('link')
+    +(e._server?'<p class="error">'+esc(e._server)+'</p>':'')
+    +'<div class="game-answer-actions"><button class="btn-gold" onclick="saveBook()" '+(bookBusy?'disabled':'')+'>'+(bookBusy?'<span class="spinner" style="width:16px;height:16px"></span> Сохраняем…':activeBookId?'Сохранить изменения':'Добавить книгу')+'</button><button class="btn-outline" onclick="libraryView=\'list\';render()">Отмена</button></div></div>';
+}
+async function saveBook(){
+  const userId=session?.user.id;if(!userId||bookBusy)return;
+  const val=id=>(document.getElementById(id)?.value??'').trim();
+  const draft={title:val('book-f-title'),author:val('book-f-author'),year:val('book-f-year'),category:val('book-f-category'),status:val('book-f-status'),rating:val('book-f-rating'),notes:val('book-f-notes'),link:val('book-f-link')};
+  bookDraft=draft;
+  const errors={},maxYear=new Date().getFullYear()+1;
+  if(!draft.title)errors.title='Введите название книги';
+  if(draft.year){const y=Number(draft.year);if(!Number.isInteger(y)||y<1000||y>maxYear)errors.year='Год должен быть от 1000 до '+maxYear}
+  if(draft.link&&!/^https?:\/\//i.test(draft.link))errors.link='Ссылка должна начинаться с http:// или https://';
+  bookFormErrors=errors;
+  if(Object.keys(errors).length){render();return}
+  bookBusy=true;render();
+  const payload={title:draft.title,author:draft.author||null,year:draft.year?Number(draft.year):null,category:draft.category||null,status:draft.status,rating:draft.rating?Number(draft.rating):null,notes:draft.notes||null,link:draft.link||null};
+  try{
+    if(activeBookId){
+      const{data,error}=await client.from('user_books').update(payload).eq('id',activeBookId).eq('user_id',userId).select().single();
+      if(error)throw error;
+      books=books.map(b=>b.id===activeBookId?data:b);
+    }else{
+      const{data,error}=await client.from('user_books').insert({...payload,user_id:userId}).select().single();
+      if(error)throw error;
+      books=[data,...books];
+    }
+    bookBusy=false;bookDraft=null;activeBookId=null;bookActionError='';libraryView='list';render();scrollTo(0,0);
+  }catch(error){bookBusy=false;bookFormErrors={_server:gameErrorText(error)};render()}
+}
+async function setBookStatus(id,status){
+  const userId=session?.user.id,b=books.find(x=>x.id===id);if(!userId||!b||b.status===status||bookBusy)return;
+  bookBusy=true;bookActionError='';render();
+  try{
+    const{data,error}=await client.from('user_books').update({status}).eq('id',id).eq('user_id',userId).select().single();
+    if(error)throw error;
+    books=books.map(x=>x.id===id?data:x);
+  }catch(error){bookActionError='Не удалось изменить статус: '+gameErrorText(error)}
+  bookBusy=false;if(tab==='library')render();
+}
+function requestDeleteBook(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  deleteBookTarget=id;let modal=document.getElementById('delete-book');
+  if(!modal){modal=document.createElement('div');modal.id='delete-book';modal.className='overlay';document.body.appendChild(modal)}
+  modal.innerHTML='<div class="box card"><div class="iconbox wine" style="margin:0 auto">'+ic('x',24)+'</div><h2>Удалить книгу?</h2><p>«'+esc(b.title)+'» будет удалена из вашей библиотеки безвозвратно.</p><p id="delete-book-error" class="error"></p><div class="row" style="width:100%"><button class="btn-outline" style="flex:1" onclick="closeDeleteBook()">Отмена</button><button class="btn-gold" style="flex:1" onclick="confirmDeleteBook()">Удалить</button></div></div>';
+  modal.style.display='flex';
+}
+function closeDeleteBook(){const m=document.getElementById('delete-book');if(m)m.style.display='none';deleteBookTarget=null}
+async function confirmDeleteBook(){
+  const userId=session?.user.id,id=deleteBookTarget;if(!userId||!id||bookBusy)return;
+  bookBusy=true;const modal=document.getElementById('delete-book');modal.querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{
+    const{error}=await client.from('user_books').delete().eq('id',id).eq('user_id',userId);
+    if(error)throw error;
+    books=books.filter(b=>b.id!==id);bookBusy=false;closeDeleteBook();
+    if(libraryView==='detail')libraryView='list';
+    render();
+  }catch(error){bookBusy=false;modal.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('delete-book-error').textContent=gameErrorText(error)}
+}
+/* ===== /Библиотека ===== */
 function trainingSetupScreen(){
   const levels=[['novice','Новичок','Процессуальные ситуации для первой тренировки',10],['beginner','Начинающий','Более подробные задачи на применение норм УПК РФ',20]];
   let content='';
@@ -924,7 +1052,7 @@ async function saveProfileName(){
   }catch(e){editProfileBusy=false;editProfileError=gameErrorText(e);render()}
 }
 function profileScreen(){const p=profileBits();if(profileView==='stats')return '<button class="back-btn" onclick="profileView=\'main\';render()">‹ Назад к профилю</button>'+statsScreen();if(profileView==='edit')return '<button class="back-btn" onclick="profileView=\'main\';render()">‹ Назад к профилю</button>'+editProfileScreen();return header('Личный кабинет','Про<span class="goldtext">филь</span>')+'<div class="card row">'+avatar(68,p.initial)+'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><h2>'+esc(p.name)+'</h2><span class="chip">'+p.levelName+'</span></div><p style="font-size:13px;color:var(--silver);margin-top:4px">'+profile.points+' баллов · уровень '+profile.level+' из 20</p><div class="progress"><span style="width:'+p.progress+'%"></span></div></div></div>'+savedArticlesHTML()+statsLinkHTML()+guestNoticeHTML()+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Настройки</p><div class="card row">'+iconbox('user')+'<div style="flex:1"><h2 style="font-size:16px">Публичный профиль</h2><p style="font-size:12px;color:var(--dim)">Участие в рейтинге «Борьбы умов»</p></div><span class="chip">Скоро</span></div>'+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Ещё</p><div class="card" style="padding:8px 20px">'+'<button class="listbtn" onclick="profileView=\'edit\';render()">'+iconbox('user',false,16)+'<span style="flex:1">Редактировать профиль</span>'+ic('chevron',15)+'</button>'+[['О приложении','document'],['Конфиденциальность','shield']].map(r=>'<button class="listbtn" disabled style="opacity:.55;cursor:default">'+iconbox(r[1],false,16)+'<span style="flex:1">'+r[0]+'</span><span class="chip">Скоро</span></button>').join('')+'</div><button class="btn-outline" style="width:100%;border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="openLogout()">Выйти из аккаунта</button><div class="row" style="justify-content:space-between;padding:0 4px"><p class="note" style="padding:0">Борьба умов · Бета 0.1 · уголовное право РФ</p><span class="chip chip-wine">Бета</span></div>'}
-const SCREENS={home:homeScreen,code:codeScreen,game:gameScreen,mistakes:mistakesScreen,profile:profileScreen};
+const SCREENS={home:homeScreen,code:codeScreen,library:libraryScreen,game:gameScreen,mistakes:mistakesScreen,profile:profileScreen};
 function render(){if(!profile)return;stopBlitzTimer();if(!SCREENS[tab])tab='home';const ae=document.activeElement,focusId=ae&&ae.id?ae.id:'',sel=(focusId&&typeof ae.selectionStart==='number')?[ae.selectionStart,ae.selectionEnd]:null,sy=window.scrollY;renderNav();const main=document.getElementById('main');main.classList.toggle('code-main',tab==='code');main.classList.toggle('game-main',tab==='game');main.innerHTML='<div class="screen">'+SCREENS[tab]()+'</div>';if(focusId){const el=document.getElementById(focusId);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}else if(sy)window.scrollTo(0,sy);if(tab==='code'&&codeView==='article')requestAnimationFrame(initArticleTOC);if(tab==='game'&&gameView==='blitz'&&blitzRound){const e=currentBlitzEntry();if(e&&!e.answered&&blitzRound.deadline)scheduleBlitzTick()}}
 function setupHTML(){return '<div class="setup"><h2 style="font-size:18px">Сначала подключите Supabase</h2><ol><li>Создайте проект на supabase.com и откройте <b>Project Settings → API</b>.</li><li>В начале этого HTML-файла найдите <code>SUPABASE_URL</code> и <code>SUPABASE_ANON_KEY</code>. Вставьте Project URL и anon public key между кавычками. service_role key использовать нельзя.</li><li>В <b>SQL Editor</b> выполните миграцию ниже: она создаёт user_profiles, favorites, user_notes и RLS-политики.</li><li>Включите <b>Authentication → Sign In / Providers → Email и Anonymous</b>. Для входа сразу после регистрации отключите Confirm email.</li><li>Сохраните HTML и откройте его снова.</li></ol><details class="sql"><summary>Показать SQL-миграцию</summary><button class="btn-outline" style="margin-top:12px;font-size:12px;min-height:38px;padding:8px 14px" onclick="copySQL(this)">Скопировать SQL</button><pre>'+esc(document.getElementById('sql-migration').textContent)+'</pre></details></div>'}
 function openAuth(mode){authMode=mode;authLoading=false;guestBusy=false;renderAuth();document.getElementById('auth').style.display='flex';if(mode==='guest'&&configured)setTimeout(startGuest,0)}
@@ -1110,6 +1238,8 @@ const ACTIONS={
   repeatMistake:el=>startMistakeRound([+el.dataset.arg]),
   repeatAllMistakes:()=>startMistakeRound(mistakes.filter(m=>!m.mastered).map(m=>m.question_id)),
   markMastered:el=>markMistakeMastered(+el.dataset.arg),
-  trainCategory:el=>trainWeakCategory(el.dataset.arg)
+  trainCategory:el=>trainWeakCategory(el.dataset.arg),
+  openBook:el=>openBook(el.dataset.arg),
+  setBookStatus:el=>setBookStatus(el.dataset.arg,el.dataset.status)
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(!el||el.disabled)return;const fn=ACTIONS[el.dataset.action];if(fn){e.preventDefault();fn(el,e)}});
