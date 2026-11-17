@@ -376,6 +376,13 @@ to{opacity:1;transform:translateY(0)}}
 .category-filter:hover{border-color:var(--gold)}
 .category-chip:hover{border-color:var(--gold)}
 @media(max-width:640px){.category-filter-wrap{flex-direction:column;align-items:stretch;gap:6px;width:100%}.category-filter{width:100%;max-width:none}}
+/* Блиц */
+.blitz-timer{display:flex;align-items:center;gap:12px;margin:14px 0 18px}
+.blitz-timer-track{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.blitz-timer-bar{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .1s linear}
+.blitz-timer-bar.urgent{background:var(--warn)}
+.blitz-timer-num{font-size:20px;font-weight:700;color:var(--paper);min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.blitz-timer-num.urgent{color:var(--warn)}
 
 </style>
 </head>
@@ -475,6 +482,8 @@ const TABS=[['home','Главная','home'],['code','Кодекс','document'],
 let tab='home',level='novice',notif=true,dark=true,client=null,session=null,profile=null,profileSyncError='',authMode=null,authLoading=false,guestBusy=false,logoutBusy=false,requestId=0;
 let articles=[],articlesLoaded=false,articlesError='',favorites=[],favBusyId='',codeView='root',currentChapter='',currentArticleId='',activeCategory='Все',activePart='Общая часть',searchQuery='',noteId='',currentNote='',noteBusy=false,noteLoading=false,noteStatus='',noteError='',noteRequestId=0,codeRequestId=0,articleDirection=0,articleNavigating=false;
 let gameQuestions=[],gameQuestionsLoaded=false,gameQuestionsLoading=false,gameQuestionsError='',gameView='sessions',gameRound=null,gameAnswerBusy=false,gameQuestionRequestId=0;
+const BLITZ_QUESTIONS=10,BLITZ_TIME=15;
+let blitzRound=null,blitzAnswerBusy=false,blitzTimerId=null;
 let gameSessions=[],gameSessionsLoaded=false,gameSessionsLoading=false,gameSessionsError='',detectiveScenarios=[],detectiveScenariosLoaded=false,detectiveScenariosLoading=false,detectiveScenariosError='',detectiveRound=null,menuView='modes',sessionBusy=false,sessionError='',resetTarget=null,detectiveAnswerBusy=false,gameDataRequestId=0,detectiveScenarioRequestId=0;
 let sessionSaveQueue=Promise.resolve(),gameSessionsPromise=null;
 const configured=SUPABASE_URL.startsWith('https://')&&SUPABASE_ANON_KEY.length>20;
@@ -482,6 +491,7 @@ function renderNav(){document.getElementById('sidenav').innerHTML=TABS.map(t=>'<
 async function go(t){if(sessionBusy)return;if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return;menuView='modes'}if(t==='game')gameView='sessions';if(t==='profile')profileView='main';if(t==='mistakes')loadMistakes();tab=t;render();scrollTo(0,0);if(t==='game'||t==='home')initializeGameData()}function closeModal(){const m=document.getElementById('modal');if(m)m.style.display='none'}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeModal();closeAnalysis();closeDetectiveAnalysis();closeReset();if(!authLoading)closeAuth();if(!logoutBusy)closeLogout()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseBlitzTimer();else resumeBlitzTimer()});
   if((e.key==='ArrowLeft'||e.key==='ArrowRight')&&tab==='code'&&codeView==='article'){
     const tag=document.activeElement?.tagName;
     if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
@@ -493,15 +503,15 @@ document.addEventListener('keydown',e=>{
 function avatar(size,letter){return '<div class="avatar" style="width:'+size+'px;height:'+size+'px"><div><span style="font-size:'+Math.round(size*.38)+'px">'+esc(letter)+'</span></div></div>'}
 function header(eyebrow,title,sub){return '<header><div class="eyebrow">'+eyebrow+'</div><h1>'+title+'</h1>'+(sub?'<p class="sub">'+sub+'</p>':'')+(profileSyncError?'<p class="notice" style="margin-top:12px">'+esc(profileSyncError)+'</p>':'')+'</header>'}function iconbox(name,wine,size){return '<div class="iconbox'+(wine?' wine':'')+'">'+ic(name,size||20)+'</div>'}
 function profileBits(){const name=profile.display_name||'Пользователь',levelName=profile.level===1?'Новичок':profile.level===2?'Начинающий':'Уровень '+profile.level;return{name,levelName,initial:(name.trim()[0]||'Ю').toUpperCase(),progress:Math.min(100,Math.max(0,profile.xp%100))}}
-function homeScreen(){if(menuView==='training')return trainingSetupScreen();if(menuView==='detective')return detectiveSetupScreen();return modesHomeScreen()}
+function homeScreen(){if(menuView==='training')return trainingSetupScreen();if(menuView==='detective')return detectiveSetupScreen();if(menuView==='blitz')return blitzSetupScreen();return modesHomeScreen()}
 function modesHomeScreen(){
-  const h=new Date().getHours(),g=h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер',p=profileBits(),training=latestActiveSession('training'),detective=latestActiveSession('detective');
+  const h=new Date().getHours(),g=h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер',p=profileBits(),training=latestActiveSession('training'),detective=latestActiveSession('detective'),blitzBest=gameSessions.filter(s=>s.mode==='blitz'&&s.status==='completed').reduce((m,s)=>Math.max(m,s.best_score||s.score||0),0);
   const modeCard=(record,mode,title,description,icon)=>{
     const progress=record?'<p class="gold" style="font-size:13px;margin-top:12px">'+esc(sessionPositionText(record))+' · '+esc(sessionScoreText(record))+'</p>':'<p style="font-size:13px;color:var(--dim);margin-top:12px">Прогресс сохраняется в Supabase</p>';
     const actions=record?'<div class="game-answer-actions"><button class="btn-gold" data-action="resumeSession" data-arg="'+esc(record.id)+'">Продолжить '+ic('chevron',14)+'</button><button class="btn-outline" data-action="requestReset" data-mode="'+mode+'" data-arg="'+esc(record.id)+'">Начать заново</button></div><button class="btn-text" style="padding-left:0" onclick="menuView=\''+mode+'\';render()">Выбрать '+(mode==='training'?'другую сложность':'другой сценарий')+'</button>':'<div class="game-answer-actions"><button class="btn-gold" onclick="menuView=\''+mode+'\';render()">Начать '+ic('chevron',14)+'</button></div>';
     return'<div class="card game-level-card"><div class="row" style="justify-content:space-between">'+iconbox(icon)+(record?'<span class="chip">В процессе</span>':'')+'</div><h2 style="margin-top:14px">'+title+'</h2><p style="font-size:13px;color:var(--silver);margin-top:5px">'+description+'</p>'+progress+actions+'</div>';
   };
-  return header('Выбор режима',g+', <span class="goldtext">юрист</span>','Продолжите текущее прохождение или начните новый режим. Переключаться между играми можно без потери прогресса.')+'<div class="card row">'+avatar(64,p.initial)+'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><h2>'+esc(p.name)+'</h2><span class="chip">'+p.levelName+'</span></div><p style="font-size:13px;color:var(--silver);margin-top:4px">'+profile.points+' баллов · уровень '+profile.level+'</p><div class="progress"><span style="width:'+p.progress+'%"></span></div></div></div>'+(gameSessionsLoading&&!gameSessionsLoaded?'<div class="save-status"><span class="spinner"></span>Загружаем ваши игровые сессии…</div>':'')+(gameSessionsError?'<p class="notice">'+esc(gameSessionsError)+' <button class="btn-text" onclick="loadGameSessions(true)">Повторить</button></p>':'')+'<div class="row" style="justify-content:space-between"><h2>Режимы</h2><span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)">Независимые сохранения</span></div><div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">'+modeCard(training,'training','Тренировка УПК','До 10 вопросов с подробным юридическим разбором каждого ответа.','scales')+modeCard(detective,'detective','Детектив','Пошаговые процессуальные расследования с уликами, решениями и баллами.','search')+'<div class="card game-level-card"><div class="row" style="justify-content:space-between">'+iconbox('lightning')+'<span class="chip">Скоро</span></div><h2 style="margin-top:14px">Блиц</h2><p style="font-size:13px;color:var(--silver);margin-top:5px">Скоростные раунды на время.</p><div class="game-answer-actions"><button class="btn-outline" disabled style="opacity:.55;cursor:default">Уведомить о запуске</button></div></div></div>';
+  return header('Выбор режима',g+', <span class="goldtext">юрист</span>','Продолжите текущее прохождение или начните новый режим. Переключаться между играми можно без потери прогресса.')+'<div class="card row">'+avatar(64,p.initial)+'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><h2>'+esc(p.name)+'</h2><span class="chip">'+p.levelName+'</span></div><p style="font-size:13px;color:var(--silver);margin-top:4px">'+profile.points+' баллов · уровень '+profile.level+'</p><div class="progress"><span style="width:'+p.progress+'%"></span></div></div></div>'+(gameSessionsLoading&&!gameSessionsLoaded?'<div class="save-status"><span class="spinner"></span>Загружаем ваши игровые сессии…</div>':'')+(gameSessionsError?'<p class="notice">'+esc(gameSessionsError)+' <button class="btn-text" onclick="loadGameSessions(true)">Повторить</button></p>':'')+'<div class="row" style="justify-content:space-between"><h2>Режимы</h2><span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)">Независимые сохранения</span></div><div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">'+modeCard(training,'training','Тренировка УПК','До 10 вопросов с подробным юридическим разбором каждого ответа.','scales')+modeCard(detective,'detective','Детектив','Пошаговые процессуальные расследования с уликами, решениями и баллами.','search')+'<div class="card game-level-card"><div class="row" style="justify-content:space-between">'+iconbox('lightning')+(blitzBest?'<span class="chip">Рекорд: '+blitzBest+'</span>':'')+'</div><h2 style="margin-top:14px">Блиц</h2><p style="font-size:13px;color:var(--silver);margin-top:5px">Скоростной раунд: '+BLITZ_QUESTIONS+' вопросов по '+BLITZ_TIME+' секунд. Очки за точность и скорость.</p><p style="font-size:13px;color:var(--dim);margin-top:12px">Без возобновления — каждый раунд новый</p><div class="game-answer-actions"><button class="btn-gold" onclick="menuView=\'blitz\';render()">Начать '+ic('chevron',14)+'</button></div></div></div>';
 }
 function articleHeading(a){return 'Статья '+a.number+(a.part&&a.part!=='вся статья'?'. Часть '+a.part:'')}
 function formatDate(v){if(!v)return'Дата редакции не указана';try{return new Date(v+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}catch(e){return v}}
@@ -816,10 +826,10 @@ async function ensureSessionListForStart(){
   if(gameSessionsError){sessionError='Не удалось проверить сохранённые игры. Повторите попытку: '+gameSessionsError;render();return false}
   return true;
 }
-function sessionPositionText(record){if(record.status==='completed')return'Завершено';const state=record.state||{};if(record.mode==='training'){const total=state.entries?.length||state.question_ids?.length||0;return'Вопрос '+Math.min(total,(record.current_position||0)+1)+' из '+total}return state.started?'Этап '+((record.current_position||0)+1)+' из '+(state.total_steps||3):'Брифинг'}
-function sessionScoreText(record){return record.mode==='training'?((record.state||{}).xp||0)+' XP':(record.score||0)+' баллов'}
+function sessionPositionText(record){if(record.status==='completed')return'Завершено';const state=record.state||{};if(record.mode==='training'){const total=state.entries?.length||state.question_ids?.length||0;return'Вопрос '+Math.min(total,(record.current_position||0)+1)+' из '+total}if(record.mode==='blitz')return'Раунд прерван';return state.started?'Этап '+((record.current_position||0)+1)+' из '+(state.total_steps||3):'Брифинг'}
+function sessionScoreText(record){if(record.mode==='training')return((record.state||{}).xp||0)+' XP';if(record.mode==='blitz')return(record.score||0)+' очков';return(record.score||0)+' баллов'}
 function formatSessionDate(value){try{return new Date(value).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
-function runtimeIsActive(){return Boolean((gameRound&&(gameView==='question'||gameView==='summary'))||(detectiveRound&&(gameView==='detective-briefing'||gameView==='detective-step'||gameView==='detective-result')))}
+function runtimeIsActive(){return Boolean((gameRound&&(gameView==='question'||gameView==='summary'))||(detectiveRound&&(gameView==='detective-briefing'||gameView==='detective-step'||gameView==='detective-result'))||(blitzRound&&(gameView==='blitz'||gameView==='blitz-summary')))}
 function trainingSessionRecord(){
   const state={question_ids:gameRound.entries.map(e=>e.question.id),entries:gameRound.entries.map(e=>({question_id:e.question.id,selected:e.selected,answerId:e.answerId,answered:e.answered,saved:e.saved,isCorrect:e.isCorrect,xpEarned:e.xpEarned,newMistake:e.newMistake})),correct:gameRound.correct,xp:gameRound.xp,newMistakes:gameRound.newMistakes};
   return{id:gameRound.sessionId,mode:'training',session_key:'training:'+gameRound.difficulty,title:gameRound.difficulty==='mistakes'?'Работа над ошибками':'Тренировка УПК · '+(gameRound.difficulty==='novice'?'Новичок':'Начинающий'),difficulty:gameRound.difficulty,scenario_id:null,state,status:gameRound.status,current_position:gameRound.index,score:gameRound.xp};
@@ -857,6 +867,12 @@ async function saveCurrentRuntime(){
       const saved=await saveSessionRecord(trainingSessionRecord());gameRound.sessionId=saved.id;
     }else if(detectiveRound&&gameView==='detective-result'){
       const saved=await saveSessionRecord(detectiveSessionRecord());detectiveRound.sessionId=saved.id;
+    }else if(blitzRound&&(gameView==='blitz'||gameView==='blitz-summary')){
+      if(blitzAnswerBusy)return false;
+      const entry=currentBlitzEntry();
+      if(gameView==='blitz'&&entry?.answered&&!entry.saved){await persistBlitzAnswer(entry);if(!entry.saved){sessionError=entry.saveError||'Ответ не сохранён';return false}}
+      if(gameView==='blitz')blitzRound.status='abandoned';
+      const saved=await saveSessionRecord(blitzSessionRecord());blitzRound.sessionId=saved.id;
     }
     sessionError='';return true;
   }catch(error){sessionError=gameErrorText(error);return false}
@@ -865,10 +881,10 @@ function queueSessionSave(){sessionSaveQueue=sessionSaveQueue.then(()=>saveCurre
 async function suspendActiveGame(){
   if(sessionBusy)return false;sessionBusy=true;sessionError='';render();
   await sessionSaveQueue;const ok=await saveCurrentRuntime();sessionBusy=false;
-  if(ok){gameRound=null;detectiveRound=null;gameView='sessions';gameAnswerBusy=false;detectiveAnswerBusy=false}
+  if(ok){gameRound=null;detectiveRound=null;stopBlitzTimer();blitzRound=null;gameView='sessions';gameAnswerBusy=false;detectiveAnswerBusy=false;blitzAnswerBusy=false}
   render();return ok;
 }
-async function exitActiveGame(){if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return}else{gameRound=null;detectiveRound=null;gameView='sessions'}menuView='modes';tab='home';render();scrollTo(0,0);initializeGameData()}
+async function exitActiveGame(){if(runtimeIsActive()){const ok=await suspendActiveGame();if(!ok)return}else{gameRound=null;detectiveRound=null;stopBlitzTimer();blitzRound=null;gameView='sessions'}menuView='modes';tab='home';render();scrollTo(0,0);initializeGameData()}
 async function resumeSession(id){
   if(sessionBusy)return;const record=gameSessions.find(s=>s.id===id);if(!record){sessionError='Сессия не найдена. Обновите список игр.';render();return}
   sessionBusy=true;sessionError='';render();
@@ -877,6 +893,14 @@ async function resumeSession(id){
       await ensureGameQuestions();const state=record.state||{},entries=(state.entries||[]).map(saved=>{const question=gameQuestions.find(q=>q.id===saved.question_id);if(!question)throw new Error('Вопрос из сохранённой сессии не найден');return{question,selected:saved.selected||[],answerId:saved.answerId||makeGameAnswerId(),answered:Boolean(saved.answered),saved:Boolean(saved.saved),isCorrect:Boolean(saved.isCorrect),xpEarned:saved.xpEarned||0,newMistake:Boolean(saved.newMistake),saveError:''}});
       if(!entries.length)throw new Error('Сохранённая тренировка пуста');
       gameRound={sessionId:record.id,difficulty:record.difficulty,entries,index:record.current_position||0,correct:state.correct||0,xp:state.xp||0,newMistakes:state.newMistakes||0,status:record.status};detectiveRound=null;level=record.difficulty;gameView=record.status==='completed'?'summary':'question';
+    }else if(record.mode==='blitz'){
+      if(record.status==='active'){
+        await client.from('game_sessions').update({status:'abandoned'}).eq('id',record.id);record.status='abandoned';
+        throw new Error('Раунд блица не возобновляется. Начните новый — он короткий!');
+      }
+      const state=record.state||{};
+      blitzRound={sessionId:record.id,entries:[],total:state.total||0,index:0,correct:state.correct||0,xp:state.xp||0,score:record.score||0,bestScore:record.best_score||0,status:'completed',deadline:0,remaining:0};
+      gameRound=null;detectiveRound=null;gameView='blitz-summary';
     }else{await ensureDetectiveScenarios();restoreDetectiveSession(record)}
     tab='game';menuView='modes';sessionError='';
   }catch(error){sessionError=gameErrorText(error)}
@@ -887,7 +911,7 @@ function activeToolbar(mode,id){
   return'<div class="session-toolbar"><button class="btn-outline" onclick="exitActiveGame()" '+(sessionBusy?'disabled':'')+'>← '+(sessionBusy?'Сохраняем…':'Выйти в меню')+'</button><button class="btn-text" onclick="requestReset(\''+mode+'\',\''+id+'\')" '+(sessionBusy?'disabled':'')+'>Начать заново</button></div>'+(sessionError&&!inlineError?'<div class="save-error"><p class="error">Не удалось сохранить прогресс: '+esc(sessionError)+'</p><button class="btn-outline" onclick="exitActiveGame()">Повторить сохранение</button></div>':'');
 }
 function sessionCard(record,completed){
-  return'<div class="card session-card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="eyebrow">'+(record.mode==='training'?'Тренировка УПК':'Детектив')+'</div><h2>'+esc(record.title)+'</h2></div><span class="chip">'+(completed?'Завершена':'В процессе')+'</span></div><div class="session-card-meta"><span>'+esc(sessionPositionText(record))+'</span><span>'+esc(sessionScoreText(record))+'</span><span>'+esc(formatSessionDate(record.updated_at))+'</span></div><div class="game-answer-actions"><button class="btn-gold" data-action="resumeSession" data-arg="'+esc(record.id)+'">'+(completed?'Итоги':'Продолжить')+' '+ic('chevron',14)+'</button><button class="btn-outline" onclick="requestReset(\''+record.mode+'\',\''+record.id+'\')">Начать заново</button></div></div>';
+  return'<div class="card session-card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="eyebrow">'+(record.mode==='training'?'Тренировка УПК':record.mode==='blitz'?'Блиц':'Детектив')+'</div><h2>'+esc(record.title)+'</h2></div><span class="chip">'+(completed?'Завершена':'В процессе')+'</span></div><div class="session-card-meta"><span>'+esc(sessionPositionText(record))+'</span><span>'+esc(sessionScoreText(record))+'</span><span>'+esc(formatSessionDate(record.updated_at))+'</span></div><div class="game-answer-actions"><button class="btn-gold" data-action="resumeSession" data-arg="'+esc(record.id)+'">'+(completed?'Итоги':'Продолжить')+' '+ic('chevron',14)+'</button><button class="btn-outline" onclick="requestReset(\''+record.mode+'\',\''+record.id+'\')">Начать заново</button></div></div>';
 }
 function gameSessionsScreen(){
   const active=gameSessions.filter(s=>s.status==='active'),completed=gameSessions.filter(s=>s.status==='completed');
@@ -898,8 +922,8 @@ function gameSessionsScreen(){
   else body='<div class="session-list">'+active.map(s=>sessionCard(s,false)).join('')+'</div>';
   return header('Ваши прохождения','Начатые <span class="goldtext">игры</span>','Каждая тренировка и каждый сценарий сохраняются отдельно. Продолжите с последнего сохранённого действия.')+(sessionError?'<p class="notice">'+esc(sessionError)+'</p>':'')+body+(completed.length?'<div class="row" style="justify-content:space-between;margin-top:16px"><h2>Завершённые</h2><span class="chip">'+completed.length+'</span></div><div class="session-list">'+completed.map(s=>sessionCard(s,true)).join('')+'</div>':'');
 }
-function gameScreen(){if(gameView==='question'&&currentGameEntry())return gameQuestionScreen();if(gameView==='summary'&&gameRound)return gameSummaryScreen();if(gameView==='detective-briefing'&&detectiveRound)return detectiveBriefingScreen();if(gameView==='detective-step'&&detectiveRound)return detectiveStepScreen();if(gameView==='detective-result'&&detectiveRound)return detectiveResultScreen();return gameSessionsScreen()}
-function resetGameState(){gameDataRequestId++;detectiveScenarioRequestId++;gameQuestionRequestId++;gameQuestions=[];gameQuestionsLoaded=false;gameQuestionsLoading=false;gameQuestionsError='';gameSessions=[];gameSessionsLoaded=false;gameSessionsLoading=false;gameSessionsError='';detectiveScenarios=[];detectiveScenariosLoaded=false;detectiveScenariosLoading=false;detectiveScenariosError='';gameView='sessions';gameRound=null;detectiveRound=null;menuView='modes';gameAnswerBusy=false;detectiveAnswerBusy=false;sessionBusy=false;sessionError='';resetTarget=null;sessionSaveQueue=Promise.resolve();gameSessionsPromise=null;const modal=document.getElementById('reset-game');if(modal)modal.style.display='none';closeAnalysis()}
+function gameScreen(){if(gameView==='question'&&currentGameEntry())return gameQuestionScreen();if(gameView==='summary'&&gameRound)return gameSummaryScreen();if(gameView==='detective-briefing'&&detectiveRound)return detectiveBriefingScreen();if(gameView==='detective-step'&&detectiveRound)return detectiveStepScreen();if(gameView==='detective-result'&&detectiveRound)return detectiveResultScreen();if(gameView==='blitz'&&blitzRound)return blitzQuestionScreen();if(gameView==='blitz-summary'&&blitzRound)return blitzSummaryScreen();return gameSessionsScreen()}
+function resetGameState(){gameDataRequestId++;detectiveScenarioRequestId++;gameQuestionRequestId++;gameQuestions=[];gameQuestionsLoaded=false;gameQuestionsLoading=false;gameQuestionsError='';gameSessions=[];gameSessionsLoaded=false;gameSessionsLoading=false;gameSessionsError='';detectiveScenarios=[];detectiveScenariosLoaded=false;detectiveScenariosLoading=false;detectiveScenariosError='';gameView='sessions';gameRound=null;detectiveRound=null;stopBlitzTimer();blitzRound=null;blitzAnswerBusy=false;menuView='modes';gameAnswerBusy=false;detectiveAnswerBusy=false;sessionBusy=false;sessionError='';resetTarget=null;sessionSaveQueue=Promise.resolve();gameSessionsPromise=null;const modal=document.getElementById('reset-game');if(modal)modal.style.display='none';closeAnalysis()}
 function gameCacheKey(userId){return'borba-questions-v1:'+userId}
 function gameCountText(n){const a=n%10,b=n%100;return n+' '+(a===1&&b!==11?'вопрос':a>=2&&a<=4&&(b<12||b>14)?'вопроса':'вопросов')}
 function gameErrorText(error){const m=String(error?.message||error||'').toLowerCase();if(m.includes('submit_game_answer')||m.includes('pgrst202'))return'Функция сохранения ответа не найдена. Выполните SQL-миграцию игрового режима.';if(m.includes('questions')&&(m.includes('does not exist')||m.includes('schema cache')))return'Таблица вопросов не найдена. Выполните миграцию и загрузите вопросы.';if(m.includes('row-level security')||m.includes('permission denied'))return'Supabase отклонил запрос. Проверьте RLS-политики игровой миграции.';if(m.includes('failed to fetch')||m.includes('network'))return'Нет соединения с Supabase. Проверьте интернет и повторите попытку.';return String(error?.message||error||'Неизвестная ошибка')}
@@ -942,6 +966,154 @@ async function startGameRound(difficulty){
   sessionBusy=false;render();scrollTo(0,0);
 }
 function repeatGameRound(){if(gameRound)requestReset('training',gameRound.sessionId)}
+/* ===== Блиц ===== */
+function blitzPool(){return gameQuestions.filter(q=>q.type==='single')}
+function buildBlitzRound(){
+  const pool=blitzPool().slice();
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  return{sessionId:null,entries:pool.slice(0,Math.min(BLITZ_QUESTIONS,pool.length)).map(question=>({question,answerId:makeGameAnswerId(),selected:null,answered:false,saved:false,isCorrect:false,xpEarned:0,score:0,timedOut:false,saveError:''})),index:0,correct:0,xp:0,score:0,bestScore:0,status:'active',deadline:0,remaining:0};
+}
+function currentBlitzEntry(){return blitzRound?.entries[blitzRound.index]||null}
+function blitzSessionRecord(){
+  const b=blitzRound,state={question_ids:b.entries.map(e=>e.question.id),total:b.entries.length,correct:b.correct,xp:b.xp,score:b.score};
+  return{id:b.sessionId,mode:'blitz',session_key:'blitz',title:'Блиц · скоростной раунд',difficulty:'blitz',scenario_id:null,state,status:b.status,current_position:b.index,score:b.score,best_score:b.bestScore,xp_earned:b.xp};
+}
+async function abandonBlitzSessions(){
+  const stale=gameSessions.filter(s=>s.mode==='blitz'&&s.status==='active');
+  for(const s of stale){const{error}=await client.from('game_sessions').update({status:'abandoned'}).eq('id',s.id);if(!error)s.status='abandoned'}
+}
+async function startBlitzRound(){
+  if(sessionBusy||!(await ensureSessionListForStart()))return;
+  if(!blitzPool().length)return;
+  sessionBusy=true;sessionError='';render();
+  try{
+    await abandonBlitzSessions();
+    blitzRound=buildBlitzRound();gameRound=null;detectiveRound=null;
+    const saved=await saveSessionRecord(blitzSessionRecord());blitzRound.sessionId=saved.id;
+    gameView='blitz';tab='game';menuView='modes';
+  }catch(error){blitzRound=null;sessionError=gameErrorText(error)}
+  sessionBusy=false;render();scrollTo(0,0);
+  if(gameView==='blitz')startBlitzTimer();
+}
+function blitzSetupScreen(){
+  const total=blitzPool().length,round=Math.min(BLITZ_QUESTIONS,total);
+  const best=gameSessions.filter(s=>s.mode==='blitz'&&s.status==='completed').reduce((m,s)=>Math.max(m,s.best_score||s.score||0),0);
+  let content='';
+  if(gameQuestionsLoading&&!gameQuestionsLoaded)content='<div class="card save-status" style="justify-content:center"><span class="spinner"></span>Загружаем вопросы…</div>';
+  else if(gameQuestionsError&&!gameQuestions.length)content='<div class="card"><p class="error">'+esc(gameQuestionsError)+'</p><button class="btn-outline" onclick="ensureGameQuestions(true)">Повторить загрузку</button></div>';
+  else content='<div class="card game-level-card"><div class="row" style="justify-content:space-between">'+iconbox('lightning')+(best?'<span class="chip">Рекорд: '+best+'</span>':'')+'</div><h2 style="margin-top:14px">Скоростной раунд</h2><p style="font-size:13px;color:var(--silver);margin-top:5px">'+BLITZ_QUESTIONS+' вопросов с одним верным ответом из всех тем. На каждый — '+BLITZ_TIME+' секунд: 100 очков за точность и до 50 за скорость. Время вышло — ответ не засчитан.</p>'+(round<BLITZ_QUESTIONS?'<p class="notice">В базе только '+total+' '+gameCountText(total)+' с одним ответом — раунд будет короче: из '+round+'.</p>':'')+'<div style="margin:18px 0"><span class="game-count">'+total+'</span><span style="font-size:12px;color:var(--silver)"> доступно</span><p class="note">Раунд не возобновляется: вышли — начали заново</p></div><button class="btn-gold" style="width:100%" onclick="startBlitzRound()" '+(!round||sessionBusy||gameSessionsLoading||!gameSessionsLoaded?'disabled':'')+'>Начать блиц · '+gameCountText(round)+'</button></div>';
+  return'<button class="back-btn" onclick="menuView=\'modes\';render()">← Все режимы</button>'+header('Блиц','Скорость и <span class="goldtext">точность</span>','Один вопрос — '+BLITZ_TIME+' секунд. Выбор фиксирует ответ сразу, кнопки «Ответить» нет.')+(sessionError?'<p class="notice">'+esc(sessionError)+'</p>':'')+content;
+}
+function scheduleBlitzTick(){if(!blitzTimerId)blitzTimerId=setInterval(updateBlitzTimer,100)}
+function stopBlitzTimer(){if(blitzTimerId){clearInterval(blitzTimerId);blitzTimerId=null}}
+function startBlitzTimer(remainMs){
+  stopBlitzTimer();
+  const b=blitzRound;if(!b)return;
+  b.deadline=Date.now()+(remainMs||BLITZ_TIME*1000);b.remaining=0;
+  scheduleBlitzTick();updateBlitzTimer();
+}
+function pauseBlitzTimer(){
+  const b=blitzRound;if(!b||!blitzTimerId)return;
+  b.remaining=Math.max(0,b.deadline-Date.now());stopBlitzTimer();
+}
+function resumeBlitzTimer(){
+  const b=blitzRound;if(!b||gameView!=='blitz')return;
+  const entry=currentBlitzEntry();if(!entry||entry.answered)return;
+  startBlitzTimer(b.remaining>0?b.remaining:BLITZ_TIME*1000);
+}
+function updateBlitzTimer(){
+  const b=blitzRound;if(!b){stopBlitzTimer();return}
+  const entry=currentBlitzEntry();if(!entry||entry.answered){stopBlitzTimer();return}
+  const remain=Math.max(0,b.deadline-Date.now()),urgent=remain<=5000;
+  const bar=document.getElementById('blitz-timer-bar'),num=document.getElementById('blitz-timer-num');
+  if(bar){bar.style.width=(remain/(BLITZ_TIME*1000)*100)+'%';bar.classList.toggle('urgent',urgent)}
+  if(num){num.textContent=Math.ceil(remain/1000);num.classList.toggle('urgent',urgent)}
+  if(remain<=0){stopBlitzTimer();blitzTimeout()}
+}
+function blitzScore(remainMs){return 100+Math.round(50*remainMs/(BLITZ_TIME*1000))}
+async function answerBlitz(index){
+  const b=blitzRound,entry=currentBlitzEntry();if(!b||!entry||entry.answered||blitzAnswerBusy)return;
+  const remain=Math.max(0,b.deadline-Date.now());
+  stopBlitzTimer();
+  entry.selected=index;entry.answered=true;entry.timedOut=false;
+  entry.isCorrect=(entry.question.correct_answers||[])[0]===index;
+  entry.score=entry.isCorrect?blitzScore(remain):0;
+  b.correct+=entry.isCorrect?1:0;b.score+=entry.score;
+  render();
+  await persistBlitzAnswer(entry);
+}
+async function blitzTimeout(){
+  const b=blitzRound,entry=currentBlitzEntry();if(!b||!entry||entry.answered)return;
+  const wrong=entry.question.options.findIndex((_,i)=>!entry.question.correct_answers.includes(i));
+  entry.selected=wrong>=0?wrong:null;entry.answered=true;entry.timedOut=true;entry.isCorrect=false;entry.score=0;
+  render();
+  await persistBlitzAnswer(entry);
+}
+async function persistBlitzAnswer(entry){
+  const b=blitzRound;if(!b||!entry||entry.saved||blitzAnswerBusy)return false;
+  blitzAnswerBusy=true;entry.saveError='';if(tab==='game')render();
+  try{
+    const given=entry.selected===null?[]:[entry.selected];
+    const{data,error}=await client.rpc('submit_game_answer',{p_answer_id:entry.answerId,p_question_id:entry.question.id,p_given_answers:given});
+    if(error)throw error;
+    if(!data||typeof data.is_correct!=='boolean')throw new Error('Supabase вернул неполный результат сохранения');
+    entry.xpEarned=Number(data.xp_earned)||0;entry.saved=true;
+    b.xp+=entry.xpEarned;
+    if(session?.user.id){profile.xp=Number(data.xp??profile.xp);profile.level=Number(data.level??profile.level);profile.points=Number(data.points??profile.points);writeCache(profileCacheKey(session.user.id),profile)}
+    statsData=null;mistakesLoaded=false;
+    const saved=await saveSessionRecord(blitzSessionRecord());if(blitzRound===b)b.sessionId=saved.id;
+  }catch(error){entry.saveError=gameErrorText(error)}
+  blitzAnswerBusy=false;if(tab==='game'&&blitzRound===b)render();
+  return entry.saved;
+}
+function retryBlitzSave(){const entry=currentBlitzEntry();if(entry&&entry.answered&&!entry.saved&&!blitzAnswerBusy)persistBlitzAnswer(entry)}
+function blitzSaveHTML(entry){
+  if(entry.saved)return'<div class="save-status saved">'+ic('check',15)+'Результат сохранён в Supabase</div>';
+  if(blitzAnswerBusy)return'<div class="save-status"><span class="spinner" style="width:16px;height:16px"></span>Сохраняем ответ…</div>';
+  return'<div class="save-error"><p class="error" style="margin:0">Не удалось сохранить результат: '+esc(entry.saveError||'ошибка соединения')+'</p><button class="btn-outline" onclick="retryBlitzSave()">Повторить сохранение</button></div>';
+}
+async function nextBlitz(){
+  const b=blitzRound,entry=currentBlitzEntry();if(!b||!entry?.saved||blitzAnswerBusy)return;
+  if(b.index>=b.entries.length-1){await finishBlitzRound();return}
+  b.index++;render();scrollTo(0,0);startBlitzTimer();
+}
+async function finishBlitzRound(){
+  const b=blitzRound;if(!b)return;
+  stopBlitzTimer();blitzAnswerBusy=true;sessionError='';render();
+  try{
+    const previousBest=gameSessions.filter(s=>s.mode==='blitz'&&s.status==='completed').reduce((m,s)=>Math.max(m,s.best_score||s.score||0),0);
+    b.bestScore=Math.max(previousBest,b.score);b.status='completed';
+    const saved=await saveSessionRecord(blitzSessionRecord());b.sessionId=saved.id;
+    gameView='blitz-summary';
+  }catch(error){sessionError=gameErrorText(error)}
+  blitzAnswerBusy=false;render();scrollTo(0,0);
+}
+function blitzTimerHTML(){
+  return'<div class="blitz-timer" role="timer" aria-label="Оставшееся время"><div class="blitz-timer-track"><span id="blitz-timer-bar" class="blitz-timer-bar" style="width:100%"></span></div><span id="blitz-timer-num" class="blitz-timer-num">'+BLITZ_TIME+'</span></div>';
+}
+function blitzQuestionScreen(){
+  const b=blitzRound,entry=currentBlitzEntry(),q=entry.question,total=b.entries.length,n=b.index+1,last=n===total,correct=new Set(q.correct_answers||[]);
+  const options=q.options.map((text,i)=>{const picked=entry.selected===i,state=entry.answered?(correct.has(i)?'Правильный ответ':picked?'Ваш неверный выбор':''):'',classes='game-option'+(entry.answered&&correct.has(i)?' correct':entry.answered&&picked?' wrong':'');return'<button class="'+classes+'" data-blitz-option="'+i+'" aria-pressed="'+picked+'" '+(entry.answered||blitzAnswerBusy?'disabled':'')+' data-action="answerBlitz" data-arg="'+i+'"><span class="option-letter">'+String.fromCharCode(65+i)+'</span><span class="option-text">'+esc(text)+(state?'<span class="option-state">'+state+'</span>':'')+'</span></button>'}).join('');
+  const result=entry.answered?'<section class="answer-result '+(entry.isCorrect?'correct':'wrong')+'" id="answer-result"><div class="eyebrow">'+(entry.timedOut?'Время вышло':'Результат ответа')+'</div><h2>'+(entry.isCorrect?'Верно! +'+entry.score+' очков':entry.timedOut?'Время вышло — ответ не засчитан':'Ответ неверный')+'</h2>'+(entry.timedOut?'':'<div class="result-section"><h3>Ваш ответ</h3><div class="'+(entry.isCorrect?'correct-answer':'wrong-explanation')+'">'+(entry.isCorrect?esc(q.options[entry.selected]):'<b>'+esc(q.options[entry.selected])+'</b>')+'</div></div>')+'<div class="result-section"><h3>Правильный ответ</h3>'+gameCorrectAnswersHTML(q)+'</div>'+(q.explanation_correct?'<div class="result-section"><h3>Обоснование</h3><p>'+esc(q.explanation_correct)+'</p></div>':'')+(entry.isCorrect?'<div class="result-section"><span class="xp-pop">+'+entry.xpEarned+' XP</span></div>':'')+blitzSaveHTML(entry)+'<div class="game-answer-actions"><button class="btn-gold" onclick="nextBlitz()" '+(!entry.saved||blitzAnswerBusy?'disabled':'')+'>'+(last?'Итоги':'Дальше')+' '+ic('chevron',15)+'</button></div></section>':'';
+  const side='<aside class="game-side"><div class="card"><div class="eyebrow">Блиц</div><dl><dt>Вопрос</dt><dd>'+n+' / '+total+'</dd><dt>Верных</dt><dd>'+b.correct+'</dd><dt>Очки</dt><dd>'+b.score+'</dd><dt>Заработано</dt><dd>'+b.xp+' XP</dd></dl>'+(q.article_ref?'<div class="article-ref"><b style="color:var(--gold2)">Нормы в задании</b><br>'+esc(q.article_ref)+'</div>':'')+'</div></aside>';
+  return activeToolbar('blitz',b.sessionId)+'<div class="game-round-head"><div><div class="eyebrow">Блиц · скоростной раунд</div><h1>Вопрос '+n+' <span class="goldtext">из '+total+'</span></h1></div><span class="chip">'+esc(q.category)+'</span></div><div class="game-progress" role="progressbar" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+n+'"><span style="width:'+(n/total*100)+'%"></span></div>'+(entry.answered?'':blitzTimerHTML())+'<div class="game-layout"><div class="game-content"><section class="card game-question-card"><div class="eyebrow">Учебная ситуация</div><div class="game-question-text">'+esc(q.text)+'</div><p class="game-type-hint">'+(entry.answered?'Ответ зафиксирован':'Одно нажатие фиксирует ответ — у вас '+BLITZ_TIME+' секунд')+'</p><div class="game-options">'+options+'</div></section>'+result+'</div>'+side+'</div>';
+}
+function blitzSummaryScreen(){
+  const b=blitzRound,total=b.entries.length||b.total||0;
+  return activeToolbar('blitz',b.sessionId)+header('Блиц завершён','Ваш <span class="goldtext">результат</span>','Все ответы и очки сохранены в Supabase.')+'<div class="card" style="text-align:center;padding:30px 20px"><div class="iconbox" style="width:66px;height:66px;margin:0 auto 18px">'+ic('lightning',30)+'</div><h2 style="font-size:27px">'+b.correct+' из '+total+' верных · '+b.score+' очков</h2><div class="game-summary-stats"><div class="game-summary-stat"><b>'+b.score+'</b><span>Очки</span></div><div class="game-summary-stat"><b>'+b.bestScore+'</b><span>Лучший результат</span></div><div class="game-summary-stat"><b>'+b.correct+'</b><span>Верных</span></div><div class="game-summary-stat"><b>+'+b.xp+'</b><span>Заработано XP</span></div></div><div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn-gold" onclick="requestReset(\'blitz\',\''+b.sessionId+'\')">'+ic('rotate',16)+'Играть снова</button><button class="btn-outline" onclick="go(\'mistakes\')">'+ic('document',16)+'Разбор ошибок</button><button class="btn-outline" onclick="exitActiveGame()">'+ic('home',16)+'Все режимы</button></div></div>';
+}
+async function resetBlitzSession(record){
+  const previous=blitzRound;try{
+    if(record.status==='active'){
+      const{error}=await client.from('game_sessions').update({status:'abandoned'}).eq('id',record.id);if(error)throw error;
+      const old=gameSessions.find(s=>s.id===record.id);if(old)old.status='abandoned';
+    }
+    blitzRound=buildBlitzRound();gameRound=null;detectiveRound=null;
+    const saved=await saveSessionRecord(blitzSessionRecord());blitzRound.sessionId=saved.id;
+    gameView='blitz';sessionError='';return true;
+  }catch(error){blitzRound=previous;sessionError=gameErrorText(error);return false}
+}
+/* ===== /Блиц ===== */
 function trainingSetupScreen(){
   const levels=[['novice','Новичок','Процессуальные ситуации для первой тренировки',10],['beginner','Начинающий','Более подробные задачи на применение норм УПК РФ',20]];
   let content='';
@@ -1146,7 +1318,7 @@ function requestReset(mode,id){
   modal.innerHTML='<div class="box card"><div class="iconbox wine" style="margin:0 auto">'+ic('rotate',24)+'</div><h2>Начать этот режим заново?</h2><p>Текущая попытка будет сброшена. История ответов, статистика, заработанный XP, исправленные ошибки и лучшие результаты сохранятся</p><p id="reset-error" class="error"></p><div class="row" style="width:100%"><button class="btn-outline" style="flex:1" onclick="closeReset()">Отмена</button><button class="btn-gold" style="flex:1" onclick="confirmReset()">Начать заново</button></div></div>';
   modal.style.display='flex';
 }
-async function confirmReset(){if(!resetTarget||sessionBusy)return;sessionBusy=true;const modal=document.getElementById('reset-game');modal.querySelectorAll('button').forEach(b=>b.disabled=true);const ok=resetTarget.mode==='training'?await resetTrainingSession(resetTarget.record):await resetDetectiveSession(resetTarget.record);sessionBusy=false;if(ok){modal.style.display='none';resetTarget=null;tab='game';menuView='modes';render();scrollTo(0,0)}else{modal.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('reset-error').textContent=sessionError||'Не удалось начать заново. Повторите попытку.'}}
+async function confirmReset(){if(!resetTarget||sessionBusy)return;sessionBusy=true;const modal=document.getElementById('reset-game');modal.querySelectorAll('button').forEach(b=>b.disabled=true);const ok=resetTarget.mode==='training'?await resetTrainingSession(resetTarget.record):resetTarget.mode==='blitz'?await resetBlitzSession(resetTarget.record):await resetDetectiveSession(resetTarget.record);sessionBusy=false;if(ok){modal.style.display='none';resetTarget=null;tab='game';menuView='modes';render();scrollTo(0,0);if(gameView==='blitz')startBlitzTimer()}else{modal.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('reset-error').textContent=sessionError||'Не удалось начать заново. Повторите попытку.'}}
 async function resetTrainingSession(record){
   const previous=gameRound;try{const fresh=buildTrainingRound(record.difficulty,record.difficulty==='mistakes'&&record.state?.question_ids?gameQuestions.filter(q=>record.state.question_ids.includes(q.id)):undefined);fresh.sessionId=record.status==='active'?record.id:null;gameRound=fresh;const saved=await saveSessionRecord(trainingSessionRecord());fresh.sessionId=saved.id;detectiveRound=null;level=fresh.difficulty;gameView='question';sessionError='';return true}catch(error){gameRound=previous;sessionError=gameErrorText(error);return false}
 }
@@ -1176,7 +1348,7 @@ function statsLinkHTML(){return '<div class="card" style="padding:6px 18px"><but
 function guestNoticeHTML(){return session?.user?.is_anonymous?'<p class="notice">Вы в гостевом режиме: прогресс хранится только на этом устройстве и может быть потерян при очистке данных браузера. <button class="btn-text" onclick="openAuth(\'upgrade\')">Привязать email</button></p>':''}
 function profileScreen(){const p=profileBits();if(profileView==='stats')return '<button class="back-btn" onclick="profileView=\'main\';render()">‹ Назад к профилю</button>'+statsScreen();return header('Личный кабинет','Про<span class="goldtext">филь</span>')+'<div class="card row">'+avatar(68,p.initial)+'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><h2>'+esc(p.name)+'</h2><span class="chip">'+p.levelName+'</span></div><p style="font-size:13px;color:var(--silver);margin-top:4px">'+profile.points+' баллов · уровень '+profile.level+' из 20</p><div class="progress"><span style="width:'+p.progress+'%"></span></div></div></div>'+savedArticlesHTML()+statsLinkHTML()+guestNoticeHTML()+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Настройки</p><div class="card row">'+iconbox('user')+'<div style="flex:1"><h2 style="font-size:16px">Публичный профиль</h2><p style="font-size:12px;color:var(--dim)">Участие в рейтинге «Борьбы умов»</p></div><span class="chip">Скоро</span></div>'+'<p style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);font-weight:600">Ещё</p><div class="card" style="padding:8px 20px">'+[['Редактировать профиль','user'],['О приложении','document'],['Конфиденциальность','shield']].map(r=>'<button class="listbtn" disabled style="opacity:.55;cursor:default">'+iconbox(r[1],false,16)+'<span style="flex:1">'+r[0]+'</span><span class="chip">Скоро</span></button>').join('')+'</div><button class="btn-outline" style="width:100%;border-color:rgba(122,36,38,.6);color:#e5b8a9" onclick="openLogout()">Выйти из аккаунта</button><div class="row" style="justify-content:space-between;padding:0 4px"><p class="note" style="padding:0">Борьба умов · Бета 0.1 · уголовное право РФ</p><span class="chip chip-wine">Бета</span></div>'}
 const SCREENS={home:homeScreen,code:codeScreen,game:gameScreen,mistakes:mistakesScreen,profile:profileScreen};
-function render(){if(!profile)return;if(!SCREENS[tab])tab='home';const ae=document.activeElement,focusId=ae&&ae.id?ae.id:'',sel=(focusId&&typeof ae.selectionStart==='number')?[ae.selectionStart,ae.selectionEnd]:null,sy=window.scrollY;renderNav();const main=document.getElementById('main');main.classList.toggle('code-main',tab==='code');main.classList.toggle('game-main',tab==='game');main.innerHTML='<div class="screen">'+SCREENS[tab]()+'</div>';if(focusId){const el=document.getElementById(focusId);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}else if(sy)window.scrollTo(0,sy);if(tab==='code'&&codeView==='article')requestAnimationFrame(initArticleTOC)}
+function render(){if(!profile)return;stopBlitzTimer();if(!SCREENS[tab])tab='home';const ae=document.activeElement,focusId=ae&&ae.id?ae.id:'',sel=(focusId&&typeof ae.selectionStart==='number')?[ae.selectionStart,ae.selectionEnd]:null,sy=window.scrollY;renderNav();const main=document.getElementById('main');main.classList.toggle('code-main',tab==='code');main.classList.toggle('game-main',tab==='game');main.innerHTML='<div class="screen">'+SCREENS[tab]()+'</div>';if(focusId){const el=document.getElementById(focusId);if(el){el.focus();if(sel&&el.setSelectionRange)try{el.setSelectionRange(sel[0],sel[1])}catch(_){}}}else if(sy)window.scrollTo(0,sy);if(tab==='code'&&codeView==='article')requestAnimationFrame(initArticleTOC);if(tab==='game'&&gameView==='blitz'&&blitzRound){const e=currentBlitzEntry();if(e&&!e.answered&&blitzRound.deadline)scheduleBlitzTick()}}
 function setupHTML(){return '<div class="setup"><h2 style="font-size:18px">Сначала подключите Supabase</h2><ol><li>Создайте проект на supabase.com и откройте <b>Project Settings → API</b>.</li><li>В начале этого HTML-файла найдите <code>SUPABASE_URL</code> и <code>SUPABASE_ANON_KEY</code>. Вставьте Project URL и anon public key между кавычками. service_role key использовать нельзя.</li><li>В <b>SQL Editor</b> выполните миграцию ниже: она создаёт user_profiles, favorites, user_notes и RLS-политики.</li><li>Включите <b>Authentication → Sign In / Providers → Email и Anonymous</b>. Для входа сразу после регистрации отключите Confirm email.</li><li>Сохраните HTML и откройте его снова.</li></ol><details class="sql"><summary>Показать SQL-миграцию</summary><button class="btn-outline" style="margin-top:12px;font-size:12px;min-height:38px;padding:8px 14px" onclick="copySQL(this)">Скопировать SQL</button><pre>'+esc(document.getElementById('sql-migration').textContent)+'</pre></details></div>'}
 function openAuth(mode){authMode=mode;authLoading=false;guestBusy=false;renderAuth();document.getElementById('auth').style.display='flex';if(mode==='guest'&&configured)setTimeout(startGuest,0)}
 function closeAuth(){if(authLoading)return;document.getElementById('auth').style.display='none';authMode=null}

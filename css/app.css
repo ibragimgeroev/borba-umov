@@ -368,3 +368,10 @@ to{opacity:1;transform:translateY(0)}}
 .category-filter:hover{border-color:var(--gold)}
 .category-chip:hover{border-color:var(--gold)}
 @media(max-width:640px){.category-filter-wrap{flex-direction:column;align-items:stretch;gap:6px;width:100%}.category-filter{width:100%;max-width:none}}
+/* Блиц */
+.blitz-timer{display:flex;align-items:center;gap:12px;margin:14px 0 18px}
+.blitz-timer-track{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.blitz-timer-bar{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .1s linear}
+.blitz-timer-bar.urgent{background:var(--warn)}
+.blitz-timer-num{font-size:20px;font-weight:700;color:var(--paper);min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.blitz-timer-num.urgent{color:var(--warn)}
