@@ -49,11 +49,12 @@ type LibraryContextValue = {
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
+const SIGNED_URL_EXPIRES_IN = 10 * 365 * 24 * 60 * 60;
 const id = () => crypto.randomUUID();
 
 async function signedCover(path: string | null) {
   if (!path || !supabase) return null;
-  const { data } = await supabase.storage.from('library-covers').createSignedUrl(path, 3600);
+  const { data } = await supabase.storage.from('library-covers').createSignedUrl(path, SIGNED_URL_EXPIRES_IN);
   return data?.signedUrl ?? null;
 }
 
@@ -99,14 +100,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       }
 
       const [favoritesResult, libraryResult, progressResult, bookmarksResult, highlightsResult, annotationsResult, historyResult, profileResult] = await Promise.all([
-        supabase.from('favorites').select('book_id'),
+        supabase.from('library_favorites').select('book_id'),
         supabase.from('library_entries').select('book_id'),
         supabase.from('reading_progress').select('*'),
         supabase.from('bookmarks').select('*').order('created_at', { ascending: false }),
         supabase.from('highlights').select('*').order('created_at', { ascending: false }),
         supabase.from('annotations').select('*').order('created_at', { ascending: false }),
         supabase.from('search_history').select('query').order('searched_at', { ascending: false }).limit(10),
-        supabase.from('profiles').select('display_name').eq('id', currentUser.id).single(),
+        supabase.from('user_profiles').select('display_name').eq('id', currentUser.id).single(),
       ]);
       const error = favoritesResult.error ?? libraryResult.error ?? progressResult.error ?? bookmarksResult.error ?? highlightsResult.error ?? annotationsResult.error ?? historyResult.error;
       if (error) throw error;
@@ -247,7 +248,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       return;
     }
     const { client, userId } = requireCloud();
-    const result = active ? await client.from('favorites').delete().eq('user_id', userId).eq('book_id', bookId) : await client.from('favorites').insert({ user_id: userId, book_id: bookId });
+    const result = active ? await client.from('library_favorites').delete().eq('user_id', userId).eq('book_id', bookId) : await client.from('library_favorites').insert({ user_id: userId, book_id: bookId });
     if (result.error) throw result.error;
     setState((current) => ({ ...current, favorites: active ? current.favorites.filter((item) => item !== bookId) : [...current.favorites, bookId] }));
   }, [state.favorites, user]);
@@ -341,7 +342,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const updateDisplayName = useCallback(async (name: string) => {
     setState((current) => ({ ...current, displayName: name }));
-    if (user && supabase) await supabase.from('profiles').update({ display_name: name }).eq('id', user.id);
+    if (user && supabase) await supabase.from('user_profiles').update({ display_name: name }).eq('id', user.id);
   }, [user]);
 
   const getBookFile = useCallback(async (book: Book) => {
@@ -352,7 +353,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       return file;
     }
     if (!supabase) throw new Error('Supabase не настроен');
-    const { data, error } = await supabase.storage.from('library-documents').createSignedUrl(book.filePath, 3600);
+    const { data, error } = await supabase.storage.from('library-documents').createSignedUrl(book.filePath, SIGNED_URL_EXPIRES_IN);
     if (error || !data) throw error ?? new Error('Не удалось получить ссылку на PDF');
     const response = await fetch(data.signedUrl);
     if (!response.ok) throw new Error('Не удалось загрузить PDF');

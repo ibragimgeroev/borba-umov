@@ -42,10 +42,12 @@ export function LibraryHome({ section }: { section: LibrarySection }) {
     return [...items].sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title, 'ru') : sort === 'author' ? a.author.localeCompare(b.author, 'ru') : sort === 'oldest' ? a.createdAt.localeCompare(b.createdAt) : b.createdAt.localeCompare(a.createdAt));
   }, [state.books, state.library, state.favorites, section, query, category, sort, isAdmin]);
 
-  const continueBook = useMemo(() => {
-    const recent = Object.values(state.progress).sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt))[0];
-    return recent ? state.books.find((book) => book.id === recent.bookId) : undefined;
-  }, [state.progress, state.books]);
+  const recentBooks = useMemo(() => Object.values(state.progress)
+    .sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt))
+    .map((progress) => state.books.find((book) => book.id === progress.bookId))
+    .filter((book): book is NonNullable<typeof book> => Boolean(book))
+    .slice(0, 4), [state.progress, state.books]);
+  const continueBook = recentBooks[0];
 
   function search(event: FormEvent) {
     event.preventDefault();
@@ -73,6 +75,7 @@ export function LibraryHome({ section }: { section: LibrarySection }) {
           <button className={section === 'notes' ? 'active' : ''} onClick={() => nav('notes')}><Icon name="notes" /><span>Мои заметки</span></button>
         </nav>
         <div className="sidebar-bottom">
+          <button className="platform-link" onClick={() => window.location.assign('../../')}><Icon name="arrowLeft" /><span>На основную платформу</span></button>
           <div className="storage-note"><span className={user ? 'online-dot' : 'local-dot'} /><div><strong>{user ? 'Облачная библиотека' : 'Локальное хранение'}</strong><small>{user ? 'Данные синхронизированы' : 'Только на этом устройстве'}</small></div></div>
           <button className={`profile-link ${section === 'profile' ? 'active' : ''}`} onClick={() => nav('profile')}><span className="mini-avatar">{state.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{state.displayName}</strong><small>{user?.email ?? 'Настройки профиля'}</small></span><Icon name="chevronRight" /></button>
         </div>
@@ -80,6 +83,7 @@ export function LibraryHome({ section }: { section: LibrarySection }) {
 
       <main className="library-main">
         <header className="topbar">
+          <button className="icon-button platform-back" onClick={() => window.location.assign('../../')} aria-label="На основную платформу"><Icon name="arrowLeft" /></button>
           <button className="mobile-brand" onClick={() => nav('catalog')}><span className="brand-mark small">БУ</span></button>
           <form className="global-search" onSubmit={search}>
             <Icon name="search" />
@@ -99,6 +103,14 @@ export function LibraryHome({ section }: { section: LibrarySection }) {
               <div className="continue-copy"><p className="eyebrow">Продолжить чтение</p><h2>{continueBook.title}</h2><p>{continueBook.author || 'Автор не указан'}</p><div className="continue-progress"><div className="progress-track"><i style={{ width: `${state.progress[continueBook.id]?.percent ?? 0}%` }} /></div><span>{state.progress[continueBook.id]?.percent ?? 0}%</span></div><button className="light-button" onClick={() => navigate(`/book/${continueBook.id}`)}>Продолжить <Icon name="chevronRight" /></button></div>
               <div className="continue-cover"><BookCover book={continueBook} /></div>
               <span className="continue-decoration">§</span>
+            </section>}
+
+            {section === 'catalog' && !query && recentBooks.length > 0 && <section className="recent-section" aria-labelledby="recent-books-title">
+              <div className="recent-heading"><h2 id="recent-books-title">Недавно открытые</h2><span>{recentBooks.length} {recentBooks.length === 1 ? 'книга' : recentBooks.length < 5 ? 'книги' : 'книг'}</span></div>
+              <div className="recent-books">{recentBooks.map((book) => <button className="recent-book" key={book.id} onClick={() => navigate(`/book/${book.id}`)} aria-label={`Продолжить чтение: ${book.title}`}>
+                <BookCover book={book} />
+                <span className="recent-book-info"><strong>{book.title}</strong><small>{book.author || 'Автор не указан'}</small><span className="recent-progress"><i style={{ width: `${state.progress[book.id]?.percent ?? 0}%` }} /></span><small>{state.progress[book.id]?.percent ?? 0}% прочитано</small></span>
+              </button>)}</div>
             </section>}
 
             {section === 'catalog' && !query && <>

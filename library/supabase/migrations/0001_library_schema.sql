@@ -3,14 +3,6 @@ create type public.highlight_kind as enum ('highlight', 'underline', 'strikeout'
 create type public.highlight_color as enum ('yellow', 'green', 'red', 'blue', 'purple');
 create type public.annotation_kind as enum ('note', 'comment', 'ink');
 
-create table public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  display_name text not null default 'Читатель' check (char_length(display_name) between 1 and 100),
-  avatar_url text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 create or replace function public.keywords_to_search_text(keywords text[])
 returns text
 language sql
@@ -23,7 +15,7 @@ $$;
 
 create table public.books (
   id uuid primary key default gen_random_uuid(),
-  owner_id uuid references public.profiles(id) on delete cascade,
+  owner_id uuid references public.user_profiles(id) on delete cascade,
   title text not null check (char_length(btrim(title)) between 1 and 300),
   author text check (author is null or char_length(author) <= 300),
   description text,
@@ -68,7 +60,7 @@ create table public.book_categories (
 create index book_categories_category_idx on public.book_categories(category_id, book_id);
 
 create table public.library_entries (
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   added_at timestamptz not null default now(),
   primary key (user_id, book_id)
@@ -76,15 +68,15 @@ create table public.library_entries (
 
 create index library_entries_book_idx on public.library_entries(book_id, user_id);
 
-create table public.favorites (
-  user_id uuid not null references public.profiles(id) on delete cascade,
+create table public.library_favorites (
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, book_id)
 );
 
 create table public.reading_progress (
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   current_page integer not null default 1 check (current_page > 0),
   percent numeric(5,2) not null default 0 check (percent between 0 and 100),
@@ -96,7 +88,7 @@ create index reading_progress_recent_idx on public.reading_progress(user_id, las
 
 create table public.reading_history (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   opened_at timestamptz not null default now(),
   last_page integer check (last_page > 0)
@@ -107,7 +99,7 @@ create index reading_history_book_idx on public.reading_history(book_id, opened_
 
 create table public.bookmarks (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   page_number integer not null check (page_number > 0),
   title text check (title is null or char_length(title) <= 300),
@@ -119,7 +111,7 @@ create index bookmarks_book_idx on public.bookmarks(user_id, book_id, page_numbe
 
 create table public.highlights (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   page_number integer not null check (page_number > 0),
   kind public.highlight_kind not null default 'highlight',
@@ -138,7 +130,7 @@ create index highlights_recent_idx on public.highlights(user_id, updated_at desc
 
 create table public.annotations (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
   highlight_id uuid,
   page_number integer not null check (page_number > 0),
@@ -162,7 +154,7 @@ create index annotations_highlight_idx on public.annotations(highlight_id) where
 
 create table public.search_history (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid not null references public.user_profiles(id) on delete cascade,
   query text not null check (char_length(btrim(query)) between 1 and 300),
   searched_at timestamptz not null default now()
 );
@@ -181,41 +173,12 @@ begin
 end;
 $$;
 
-create trigger profiles_set_updated_at before update on public.profiles
-for each row execute function public.set_updated_at();
 create trigger books_set_updated_at before update on public.books
 for each row execute function public.set_updated_at();
 create trigger highlights_set_updated_at before update on public.highlights
 for each row execute function public.set_updated_at();
 create trigger annotations_set_updated_at before update on public.annotations
 for each row execute function public.set_updated_at();
-
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (
-    new.id,
-    left(coalesce(
-      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
-      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
-      'Читатель'
-    ), 100)
-  );
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created after insert on auth.users
-for each row execute function public.handle_new_user();
-
-insert into public.profiles (id)
-select id from auth.users
-on conflict (id) do nothing;
 
 create or replace function public.is_admin()
 returns boolean
@@ -227,27 +190,17 @@ as $$
   select coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false);
 $$;
 
-alter table public.profiles enable row level security;
 alter table public.books enable row level security;
 alter table public.categories enable row level security;
 alter table public.book_categories enable row level security;
 alter table public.library_entries enable row level security;
-alter table public.favorites enable row level security;
+alter table public.library_favorites enable row level security;
 alter table public.reading_progress enable row level security;
 alter table public.reading_history enable row level security;
 alter table public.bookmarks enable row level security;
 alter table public.highlights enable row level security;
 alter table public.annotations enable row level security;
 alter table public.search_history enable row level security;
-
-create policy profiles_select_own on public.profiles
-for select to authenticated using ((select auth.uid()) = id);
-create policy profiles_insert_own on public.profiles
-for insert to authenticated with check ((select auth.uid()) = id);
-create policy profiles_update_own on public.profiles
-for update to authenticated
-using ((select auth.uid()) = id)
-with check ((select auth.uid()) = id);
 
 create policy books_select_visible on public.books
 for select to anon, authenticated
@@ -309,15 +262,15 @@ with check (
 create policy library_entries_delete_own on public.library_entries
 for delete to authenticated using ((select auth.uid()) = user_id);
 
-create policy favorites_select_own on public.favorites
+create policy library_favorites_select_own on public.library_favorites
 for select to authenticated using ((select auth.uid()) = user_id);
-create policy favorites_insert_own on public.favorites
+create policy library_favorites_insert_own on public.library_favorites
 for insert to authenticated
 with check (
   (select auth.uid()) = user_id
   and exists (select 1 from public.books where books.id = book_id)
 );
-create policy favorites_delete_own on public.favorites
+create policy library_favorites_delete_own on public.library_favorites
 for delete to authenticated using ((select auth.uid()) = user_id);
 
 create policy reading_progress_select_own on public.reading_progress
@@ -403,14 +356,12 @@ create policy search_history_delete_own on public.search_history
 for delete to authenticated using ((select auth.uid()) = user_id);
 
 grant select on public.books, public.categories, public.book_categories to anon;
-grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.books to authenticated;
 grant select, insert, update, delete on public.categories to authenticated;
 grant select, insert, update, delete on public.book_categories to authenticated;
-grant select, insert, update, delete on public.library_entries, public.favorites to authenticated;
+grant select, insert, update, delete on public.library_entries, public.library_favorites to authenticated;
 grant select, insert, update, delete on public.reading_progress, public.reading_history to authenticated;
 grant select, insert, update, delete on public.bookmarks, public.highlights, public.annotations to authenticated;
 grant select, insert, update, delete on public.search_history to authenticated;
 grant execute on function public.is_admin() to anon, authenticated;
-revoke execute on function public.handle_new_user() from public;
 revoke execute on function public.set_updated_at() from public;

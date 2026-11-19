@@ -10,7 +10,6 @@ export const supabase = supabaseUrl && supabaseAnonKey
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'borba-umov-library-auth',
       },
     })
   : null;
